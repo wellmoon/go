@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 	"strings"
 	"time"
 )
@@ -79,13 +80,46 @@ func switchFile(logFile string) (bool, *os.File) {
 	return res, newFile
 }
 
+// untime/debug.Stack(0x0, 0xc0000ca398, 0x16)
+//         /usr/local/go/src/runtime/debug/stack.go:24 +0x9f
+// github.com/wellmoon/go/logger.getStack(...)
+//         /Users/wenjie/github.com/wellmoon/go/logger/logger.go:94
+// github.com/wellmoon/go/logger.print(0xc00008c140, 0x13a3c38, 0x1a, 0xc00006bfa8, 0x1, 0x1)
+//         /Users/wenjie/github.com/wellmoon/go/logger/logger.go:106 +0x26
+// github.com/wellmoon/go/logger.Debug(0x13a3c38, 0x1a, 0xc00006bfa8, 0x1, 0x1)
+//         /Users/wenjie/github.com/wellmoon/go/logger/logger.go:115 +0x165
+// go_code/leridge_server/socket.handleMessage(0xc0000ea070, 0x13252e0, 0xc000012d40)
+//         /Users/wenjie/go/src/go_code/leridge_server/socket/server.go:136 +0x3cc
+// created by go_code/leridge_server/socket.OnMessage
+//         /Users/wenjie/go/src/go_code/leridge_server/socket/message.go:138 +0x4c7
+func getStack() string {
+	sep := string(os.PathSeparator)
+	var res string
+	var arr []string
+	res = string(debug.Stack())
+	arr = strings.Split(res, "github.com/wellmoon/go/logger/logger.go:")
+	res = arr[len(arr)-1]
+	arr = strings.Split(res, "\n")
+	res = arr[2]
+	res = strings.TrimSpace(res)
+	res = strings.Split(res, " ")[0]
+	arr = strings.Split(res, sep)
+	res = arr[len(arr)-1]
+	res = "[" + res + "] "
+	return res
+}
+
+func print(tarLog *log.Logger, format string, v ...interface{}) {
+	tarLog.Printf(getStack()+format, v...)
+}
+
 func Debug(format string, v ...interface{}) {
 	switchFile, logFile := switchFile("detail")
 	if debugLog == nil || switchFile {
 		logWriter := io.MultiWriter(logFile, os.Stdout)
 		debugLog = log.New(logWriter, "[DEBUG] ", flag)
 	}
-	debugLog.Printf(format, v...)
+	print(debugLog, format, v...)
 }
 
 func Trace(format string, v ...interface{}) {
@@ -93,7 +127,7 @@ func Trace(format string, v ...interface{}) {
 	if traceLog == nil || switchFile {
 		traceLog = log.New(logFile, "[TRACE] ", flag)
 	}
-	traceLog.Printf(format, v...)
+	print(traceLog, format, v...)
 }
 
 func Error(format string, v ...interface{}) {
@@ -102,7 +136,7 @@ func Error(format string, v ...interface{}) {
 		logWriter := io.MultiWriter(logFile, os.Stdout)
 		errorLog = log.New(logWriter, "[ERROR] ", flag)
 	}
-	errorLog.Printf(format, v...)
+	print(errorLog, format, v...)
 }
 
 func Fatal(format string, v ...interface{}) {
@@ -111,5 +145,5 @@ func Fatal(format string, v ...interface{}) {
 		logWriter := io.MultiWriter(logFile, os.Stdout)
 		fatalLog = log.New(logWriter, "[ERROR] ", flag)
 	}
-	fatalLog.Fatalf(format, v...)
+	print(fatalLog, format, v...)
 }
