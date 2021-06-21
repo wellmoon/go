@@ -25,10 +25,7 @@ type PathVo struct {
 
 var path *PathVo
 
-func Path() *PathVo {
-	if path != nil {
-		return path
-	}
+func CurPath() string {
 	curPath, _ := os.Getwd()
 	executable, _ := os.Executable()
 	dir := filepath.Dir(executable)
@@ -38,6 +35,14 @@ func Path() *PathVo {
 	} else {
 		mainPath = curPath
 	}
+	return mainPath
+}
+
+func Path() *PathVo {
+	if path != nil {
+		return path
+	}
+	mainPath := CurPath()
 
 	sep := string(os.PathSeparator)
 
