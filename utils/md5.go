@@ -6,6 +6,7 @@ import (
 	"container/list"
 	"crypto/md5"
 	"fmt"
+	"hash/crc32"
 	"io"
 	"os"
 	"sort"
@@ -193,4 +194,8 @@ func md5Block(list *list.List, buf []byte, wg *sync.WaitGroup) {
 	list.PushBack(str)
 	lock.Unlock()
 	wg.Done()
+}
+
+func HashCode(s string) uint32 {
+	return crc32.ChecksumIEEE([]byte(s))
 }

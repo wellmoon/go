@@ -10,14 +10,13 @@ import (
 )
 
 type Message struct {
-	EventName  string `json:"eventName"`
-	MsgType    string `json:"msgType"`
-	CmdIdx     string `json:"cmdIdx"`
-	Code       int    `json:"code"`
-	Content    string `json:"content"`
-	TargetId   string `json:"targetId"`
-	contentMap map[string]string
-	Wait       *sync.WaitGroup
+	EventName string `json:"eventName"`
+	MsgType   string `json:"msgType"`
+	CmdIdx    string `json:"cmdIdx"`
+	Code      int    `json:"code"`
+	Content   string `json:"content"`
+	TargetId  string `json:"targetId"`
+	Wait      *sync.WaitGroup
 }
 
 type MsgHandler func(message *Message, conn interface{})
@@ -56,14 +55,6 @@ func (message *Message) NewResponse(code int) *Message {
 	response.EventName = message.EventName
 	response.Code = code
 	return &response
-}
-
-func (message *Message) GetContent() *map[string]string {
-	if len(message.contentMap) == 0 {
-		message.contentMap = make(map[string]string)
-		json.Unmarshal([]byte(message.Content), &message.contentMap)
-	}
-	return &message.contentMap
 }
 
 func (message *Message) SendMsg(conn interface{}) *Message {

@@ -9,8 +9,8 @@ import (
 )
 
 type ListResult struct {
-	Columns []string
-	List    *[]map[string]string
+	Columns []string             `json:"columns"`
+	List    *[]map[string]string `json:"list"`
 }
 
 type Dao struct {
@@ -34,7 +34,7 @@ func NewDao(ip string, port string, dbUser string, dbPass string, dbName string)
 	return &dbStu
 }
 
-func (dao Dao) QueryMap(sql string, args ...interface{}) *map[string]string {
+func (dao Dao) QueryMap(sql string, args ...interface{}) map[string]string {
 	rows, err := dao.db.Query(sql, args...)
 	if err != nil {
 		Log.Error("查询失败，sql is %v, err : %v\n", sql, err)
@@ -58,7 +58,7 @@ func (dao Dao) QueryMap(sql string, args ...interface{}) *map[string]string {
 			}
 		}
 	}
-	return &record
+	return record
 }
 
 func (dao Dao) QueryList(sql string, args ...interface{}) *ListResult {
