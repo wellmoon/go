@@ -37,7 +37,7 @@ func (jsonObject *JSONObject) GetInt(key string) int {
 		s := ToStr(v)
 		res, err := strconv.Atoi(s)
 		if err != nil {
-			Log.Fatal("convert to int error, value is %v\n", v)
+			Log.Fatal("convert to int error, value is {}", v)
 		} else {
 			return res
 		}
@@ -96,7 +96,7 @@ func (jsonObject *JSONObject) GetArray(key string) ([]interface{}, error) {
 		// 尝试把字符串转为slice
 		str, sok := v.(string)
 		if !sok {
-			Log.Error("convert to array error, value is %v\n", v)
+			Log.Error("convert to array error, value is {}", v)
 			return nil, errors.New("convert to array error")
 		}
 		slice := make([]interface{}, 0)
@@ -113,7 +113,7 @@ func (jsonObject *JSONObject) GetJSONObject(key string) (*JSONObject, error) {
 	value := jsonObject.ItemMap[key]
 	val, ok := value.(string)
 	if !ok {
-		Log.Fatal("convert to JSONObject error, value is %v\n", value)
+		Log.Fatal("convert to JSONObject error, value is {}", value)
 	}
 	result, err := ParseJSONObject(val)
 	return result, err
@@ -143,7 +143,7 @@ func ParseJSONObject(inter interface{}) (*JSONObject, error) {
 	}
 	err := json.Unmarshal([]byte(str), &jsonObject.ItemMap)
 	if err != nil {
-		Log.Error("string ParseJSONObject error, string is %v, err is %v\n", str, err)
+		Log.Error("string ParseJSONObject error, string is {}, err is {}", str, err)
 		return nil, err
 	}
 	return jsonObject, nil
@@ -168,7 +168,7 @@ func ParseMap(inter interface{}) (map[string]interface{}, error) {
 	}
 	err := json.Unmarshal([]byte(str), &mapRes)
 	if err != nil {
-		Log.Error("string ParseJSONObject error, string is %v, err is %v\n", str, err)
+		Log.Error("string ParseJSONObject error, string is {}, err is {}", str, err)
 		return nil, err
 	}
 	return mapRes, nil
@@ -177,14 +177,21 @@ func ParseMap(inter interface{}) (map[string]interface{}, error) {
 func Parse(str string, inter interface{}) {
 	err := json.Unmarshal([]byte(str), inter)
 	if err != nil {
-		Log.Error("string Parse error, string is %v, err is %v\n", str, err)
+		Log.Error("string Parse error, string is {}, err is {}", str, err)
+	}
+}
+
+func ParseBytes(bytes []byte, inter interface{}) {
+	err := json.Unmarshal(bytes, inter)
+	if err != nil {
+		Log.Error("string ParseBytes error,  err is {}", err)
 	}
 }
 
 func ParseArray(str string, inter *[]interface{}) error {
 	err := json.Unmarshal([]byte(str), inter)
 	if err != nil {
-		Log.Error("string ParseArray error, string is %v, err is %v\n", str, err)
+		Log.Error("string ParseArray error, string is {}, err is {}", str, err)
 		return err
 	}
 	return nil
