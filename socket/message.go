@@ -16,7 +16,7 @@ type Message struct {
 	Code      int    `json:"code"`
 	Content   string `json:"content"`
 	TargetId  string `json:"targetId"`
-	Wait      *sync.WaitGroup
+	Wait      sync.WaitGroup
 }
 
 type MsgHandler func(message *Message, conn interface{})
@@ -24,11 +24,11 @@ type MsgHandler func(message *Message, conn interface{})
 var sendMsgMap map[string]*Message = make(map[string]*Message)
 var recvMsgMap map[string]*Message = make(map[string]*Message)
 
-func NewMessage(str string) (Message, error) {
-	message := Message{}
+func NewMessage(str string) (*Message, error) {
+	message := &Message{}
 	err := json.Unmarshal([]byte(str), &message)
 	if err != nil {
-		Log.Error("消息格式不正确：%v\n", str)
+		Log.Error("消息格式不正确：{}", str)
 	}
 	return message, err
 }
@@ -61,7 +61,7 @@ func (message *Message) SendMsg(conn interface{}) *Message {
 	messageByte, _ := json.Marshal(message)
 	messageStr := string(messageByte)
 	messageStr = messageStr + "\r\n"
-	Log.Trace("发送消息:%v\n", messageStr)
+	Log.Trace("发送消息:{}", messageStr)
 
 	v := reflect.ValueOf(conn)
 
@@ -78,22 +78,22 @@ func (message *Message) SendMsg(conn interface{}) *Message {
 
 	// 如果err不是nil
 	if _, ok := ret[1].Interface().(error); ok {
-		Log.Error("发送消息失败：%v\n", message.Content)
+		Log.Error("发送消息失败：{}", message.Content)
 	}
 
 	if strings.Contains(message.MsgType, "Request") {
-		var wg sync.WaitGroup
-		wg.Add(1)
-		message.Wait = &wg
-		Log.Trace("把消息放入发送队列:%v\n", message.CmdIdx)
+		message.Wait.Add(1)
+		Log.Trace("把消息放入发送队列:{}", message.CmdIdx)
 		sendMsgMap[message.CmdIdx] = message
-		wg.Wait()
+		message.Wait.Wait()
 		response := recvMsgMap[message.CmdIdx]
-		Log.Trace("获取到[%v]返回消息:%v\n", message.CmdIdx, response.String())
+		Log.Trace("获取到[{}]返回消息:{}", message.CmdIdx, response.String())
 		return response
 	}
 	return nil
 }
+
+var onMessageLock sync.Mutex
 
 func OnMessage(conn interface{}, msgChan chan string, handler MsgHandler) {
 	var line string
@@ -103,16 +103,21 @@ func OnMessage(conn interface{}, msgChan chan string, handler MsgHandler) {
 			Log.Debug("获取管道消息失败，退出")
 			break
 		}
-		Log.Trace("从管道中获取到消息：%v\n", msg)
+		Log.Trace("line is ：{}", line)
+		Log.Trace("从管道中获取到消息：{}", msg)
+		onMessageLock.Lock()
 		line = line + msg
-		if strings.Contains(msg, "\r\n") {
+		Log.Trace("line + msg is ：{}", line)
+		if strings.Contains(line, "\r\n") {
 			arr := strings.Split(line, "\r\n")
 			line = arr[1]
+			Log.Trace("split line is ：{}", line)
 			msg = arr[0]
+			Log.Trace("split msg is ：{}", msg)
 			message := new(Message)
 			err := json.Unmarshal([]byte(msg), message)
 			if err != nil {
-				Log.Error("消息解析失败，消息内容:%v\n", msg)
+				Log.Error("消息解析失败，消息内容: {}", msg)
 			} else {
 				cmdIdx := message.CmdIdx
 				msgType := message.MsgType
@@ -120,7 +125,7 @@ func OnMessage(conn interface{}, msgChan chan string, handler MsgHandler) {
 					recvMsgMap[cmdIdx] = message
 					sendMessage := sendMsgMap[cmdIdx]
 					sendMessage.Wait.Done()
-					Log.Trace("删除发送队列消息:%v\n", cmdIdx)
+					Log.Trace("删除发送队列消息: {}", cmdIdx)
 					delete(sendMsgMap, cmdIdx)
 
 				} else {
@@ -129,5 +134,6 @@ func OnMessage(conn interface{}, msgChan chan string, handler MsgHandler) {
 				}
 			}
 		}
+		onMessageLock.Unlock()
 	}
 }

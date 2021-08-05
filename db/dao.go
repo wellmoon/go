@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 
@@ -22,7 +23,7 @@ func NewDao(ip string, port string, dbUser string, dbPass string, dbName string)
 
 	db, err := sql.Open("mysql", url)
 	if err != nil {
-		Log.Debug("connect db faild, url is [%v], err : %v\n", url, err)
+		Log.Debug("connect db faild, url is [{}], err : {}", url, err)
 		return nil
 	}
 	db.SetMaxOpenConns(2000)
@@ -37,7 +38,7 @@ func NewDao(ip string, port string, dbUser string, dbPass string, dbName string)
 func (dao Dao) QueryMap(sql string, args ...interface{}) map[string]string {
 	rows, err := dao.db.Query(sql, args...)
 	if err != nil {
-		Log.Error("查询失败，sql is %v, err : %v\n", sql, err)
+		Log.Error("查询失败，sql is {}, err : {}", sql, err)
 		return nil
 	}
 	defer rows.Close()
@@ -62,9 +63,11 @@ func (dao Dao) QueryMap(sql string, args ...interface{}) map[string]string {
 }
 
 func (dao Dao) QueryList(sql string, args ...interface{}) *ListResult {
+	t1 := time.Now()
 	rows, err := dao.db.Query(sql, args...)
+	Log.Debug("查询list耗时 %.2f 秒，sql is {}", time.Since(t1).Seconds(), sql)
 	if err != nil {
-		Log.Error("查询失败，sql is %v, err : %v\n", sql, err)
+		Log.Error("查询失败，sql is {}, err : {}", sql, err)
 		return nil
 	}
 	defer rows.Close()
@@ -89,4 +92,20 @@ func (dao Dao) QueryList(sql string, args ...interface{}) *ListResult {
 		list = append(list, record)
 	}
 	return &ListResult{columns, &list}
+}
+
+func (dao Dao) Update(sql string, args ...interface{}) (int64, string) {
+
+	result, err := dao.db.Exec(sql)
+	if err != nil {
+		Log.Error("exec failed err is {}, sql is {}", err, sql)
+		return 0, err.Error()
+	}
+
+	idAff, err := result.RowsAffected()
+	if err != nil {
+		Log.Error("RowsAffected failed {}", err)
+		return 0, err.Error()
+	}
+	return idAff, ""
 }

@@ -14,6 +14,13 @@ import (
 var GIT_ROOT = "https://codeup.aliyun.com/5f8cff393035265285849090/leridge/"
 
 func Clone(project string, clonePath string, branch string, gitUsername string, gitPassword string) string {
+	defer func() {
+		// 发生宕机时，获取panic传递的上下文并打印
+		err := recover()
+		if err != nil {
+			Log.Error("recover error:%v", err)
+		}
+	}()
 	if len(branch) == 0 {
 		branch = "master"
 	}

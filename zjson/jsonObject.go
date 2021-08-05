@@ -50,7 +50,8 @@ func (jsonObject *JSONObject) GetString(key string) string {
 	v := value
 	val, ok := v.(string)
 	if !ok {
-		Log.Fatal("convert to string error, value is %v\n", v)
+		Log.Fatal("convert to string error, value is {}", v)
+		return ""
 	}
 	return val
 }
@@ -60,7 +61,7 @@ func (jsonObject *JSONObject) GetFloat(key string) float64 {
 	v := value
 	val, ok := v.(float64)
 	if !ok {
-		Log.Fatal("convert to float error, value is %v\n", v)
+		Log.Fatal("convert to float error, value is {}", v)
 	}
 	return val
 }

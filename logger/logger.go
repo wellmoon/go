@@ -109,8 +109,14 @@ func getStack() string {
 	return res
 }
 
-func print(tarLog *log.Logger, format string, v ...interface{}) {
-	tarLog.Printf(getStack()+format, v...)
+func print(tarLog *log.Logger, s string, v ...interface{}) {
+	if strings.Contains(s, "{}") {
+		s = strings.ReplaceAll(s, "{}", "%v")
+	}
+	if !strings.HasSuffix(s, "\n") {
+		s = s + "\n"
+	}
+	tarLog.Printf(getStack()+s, v...)
 }
 
 func Debug(format string, v ...interface{}) {
