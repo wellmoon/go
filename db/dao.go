@@ -96,7 +96,7 @@ func (dao Dao) QueryList(sql string, args ...interface{}) *ListResult {
 
 func (dao Dao) Update(sql string, args ...interface{}) (int64, string) {
 
-	result, err := dao.db.Exec(sql)
+	result, err := dao.db.Exec(sql, args...)
 	if err != nil {
 		Log.Error("exec failed err is {}, sql is {}", err, sql)
 		return 0, err.Error()

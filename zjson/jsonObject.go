@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/shopspring/decimal"
 	Log "github.com/wellmoon/go/logger"
 )
 
@@ -31,29 +32,67 @@ func (jsonObject *JSONObject) Contains(key string) bool {
 
 func (jsonObject *JSONObject) GetInt(key string) int {
 	value := jsonObject.ItemMap[key]
-	v := value
-	val, ok := v.(int)
-	if !ok {
-		s := ToStr(v)
-		res, err := strconv.Atoi(s)
+	switch value := value.(type) {
+	case string:
+		r, err := strconv.Atoi(value)
 		if err != nil {
-			Log.Fatal("convert to int error, value is {}", v)
-		} else {
-			return res
+			Log.Debug("GetInt by strconv.Atoi error: {}", err)
 		}
+		return r
+	case int:
+		return value
+	case int64:
+		return int(value)
+	case int32:
+		return int(value)
+	default:
+		r, err := strconv.Atoi(ToStr(value))
+		if err != nil {
+			Log.Debug("GetInt error for type {}", reflect.TypeOf(value))
+		}
+		return r
 	}
-	return val
+}
+
+func (jsonObject *JSONObject) GetInt64(key string) int64 {
+	value := jsonObject.ItemMap[key]
+	switch value := value.(type) {
+	case string:
+		r, err := strconv.Atoi(value)
+		if err != nil {
+			Log.Debug("GetInt64 by strconv.Atoi error: {}", err)
+		}
+		return int64(r)
+	case int:
+		return int64(value)
+	case int64:
+		return value
+	case int32:
+		return int64(value)
+	default:
+		r, err := strconv.Atoi(ToStr(value))
+		if err != nil {
+			Log.Debug("GetInt64 error for type {}", reflect.TypeOf(value))
+		}
+		return int64(r)
+	}
 }
 
 func (jsonObject *JSONObject) GetString(key string) string {
 	value := jsonObject.ItemMap[key]
-	v := value
-	val, ok := v.(string)
-	if !ok {
-		Log.Fatal("convert to string error, value is {}", v)
-		return ""
+	switch value := value.(type) {
+	case string:
+		return value
+	case int:
+		return strconv.Itoa(value)
+	case int64:
+		return ToStr(value)
+	case float64:
+		return decimal.NewFromFloat(value).String()
+	default:
+		Log.Debug("GetString for type {}", reflect.TypeOf(value))
+		return ToStr(value)
 	}
-	return val
 }
 
 func (jsonObject *JSONObject) GetFloat(key string) float64 {
@@ -181,11 +220,13 @@ func Parse(str string, inter interface{}) {
 	}
 }
 
-func ParseBytes(bytes []byte, inter interface{}) {
-	err := json.Unmarshal(bytes, inter)
+func ParseBytes(bytes []byte) *JSONObject {
+	jsonObject := NewObject()
+	err := json.Unmarshal(bytes, &jsonObject.ItemMap)
 	if err != nil {
 		Log.Error("string ParseBytes error,  err is {}", err)
 	}
+	return jsonObject
 }
 
 func ParseArray(str string, inter *[]interface{}) error {

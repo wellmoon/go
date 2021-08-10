@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	Log "github.com/wellmoon/go/logger"
-	"github.com/wellmoon/go/zjson"
 )
 
 type Downloader struct {
@@ -89,7 +88,7 @@ func IsDir(path string) bool {
 
 }
 
-func SendReq(url string, requestType string, params map[string]string, headers map[string]string) *zjson.JSONObject {
+func SendReq(url string, requestType string, params map[string]string, headers map[string]string) (string, map[string]string, map[string]string) {
 	client := &http.Client{}
 	reqType := "GET"
 	requestType = strings.ToUpper(requestType)
@@ -97,7 +96,17 @@ func SendReq(url string, requestType string, params map[string]string, headers m
 		reqType = requestType
 	}
 
-	request, err := http.NewRequest(reqType, url, nil)
+	var paramStr string
+	if len(params) > 0 {
+		var r http.Request
+		r.ParseForm()
+		for key, val := range params {
+			r.Form.Add(key, val)
+		}
+		paramStr = strings.TrimSpace(r.Form.Encode())
+	}
+
+	request, err := http.NewRequest(reqType, url, strings.NewReader(paramStr))
 	if err != nil {
 		Log.Error("NewRequest error : {}", err)
 	}
@@ -108,12 +117,6 @@ func SendReq(url string, requestType string, params map[string]string, headers m
 		}
 	}
 
-	if len(params) > 0 {
-		for key, val := range params {
-			request.PostForm.Add(key, val)
-		}
-	}
-
 	//处理返回结果
 	response, err := client.Do(request)
 	if err != nil {
@@ -121,18 +124,21 @@ func SendReq(url string, requestType string, params map[string]string, headers m
 	}
 	defer response.Body.Close()
 	respHeaders := response.Header
+	respHeaderMap := make(map[string]string)
 	for k := range respHeaders {
-		Log.Debug("respHeader : {}", k)
+		respHeaderMap[k] = respHeaders.Get(k)
+	}
+
+	cookies := response.Cookies()
+	respCookiesMap := make(map[string]string)
+	for _, c := range cookies {
+		respCookiesMap[c.Name] = c.Value
 	}
 
 	resBytes, err := ioutil.ReadAll(response.Body)
 	if err != nil {
 		Log.Error("read resp error : {}", err)
 	}
-	json, err := zjson.ParseJSONObject(resBytes)
-	if err != nil {
-		Log.Error("ParseJSONObject error : {}", err)
-	}
-	return json
+	return string(resBytes), respHeaderMap, respCookiesMap
 
 }
