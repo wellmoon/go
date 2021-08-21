@@ -32,6 +32,15 @@ func (jsonObject *JSONObject) Contains(key string) bool {
 
 func (jsonObject *JSONObject) GetInt(key string) int {
 	value := jsonObject.ItemMap[key]
+	return ToInt(value)
+}
+
+func (jsonObject *JSONObject) GetInt64(key string) int64 {
+	value := jsonObject.ItemMap[key]
+	return ToInt64(value)
+}
+
+func ToInt(value interface{}) int {
 	switch value := value.(type) {
 	case string:
 		r, err := strconv.Atoi(value)
@@ -54,8 +63,7 @@ func (jsonObject *JSONObject) GetInt(key string) int {
 	}
 }
 
-func (jsonObject *JSONObject) GetInt64(key string) int64 {
-	value := jsonObject.ItemMap[key]
+func ToInt64(value interface{}) int64 {
 	switch value := value.(type) {
 	case string:
 		r, err := strconv.Atoi(value)
@@ -80,18 +88,27 @@ func (jsonObject *JSONObject) GetInt64(key string) int64 {
 
 func (jsonObject *JSONObject) GetString(key string) string {
 	value := jsonObject.ItemMap[key]
+	return ToStr(value)
+}
+
+func ToStr(value interface{}) string {
+	if value == nil {
+		return ""
+	}
 	switch value := value.(type) {
 	case string:
 		return value
 	case int:
 		return strconv.Itoa(value)
 	case int64:
-		return ToStr(value)
+		return fmt.Sprintf("%v", value)
 	case float64:
 		return decimal.NewFromFloat(value).String()
+	case *interface{}:
+		return fmt.Sprintf("%v", *value)
 	default:
 		Log.Debug("GetString for type {}", reflect.TypeOf(value))
-		return ToStr(value)
+		return fmt.Sprintf("%v", value)
 	}
 }
 
@@ -146,6 +163,23 @@ func (jsonObject *JSONObject) GetArray(key string) ([]interface{}, error) {
 		return slice, nil
 	}
 	return val, nil
+}
+
+func (jsonObject *JSONObject) GetStringArray(key string) ([]string, error) {
+	arr, err := jsonObject.GetArray(key)
+	if err != nil {
+		return nil, err
+	}
+	strSlice := make([]string, 0)
+	for _, v := range arr {
+		str, sok := v.(string)
+		if !sok {
+			Log.Error("convert {} to string error", v)
+			return nil, err
+		}
+		strSlice = append(strSlice, str)
+	}
+	return strSlice, nil
 }
 
 func (jsonObject *JSONObject) GetJSONObject(key string) (*JSONObject, error) {
@@ -243,6 +277,11 @@ func (jsonObject *JSONObject) ToJSONString() string {
 	return string(res)
 }
 
+func (jsonObject *JSONObject) MarshalJSON() ([]byte, error) {
+	res, err := json.Marshal(jsonObject.ItemMap)
+	return res, err
+}
+
 func ToJSONString(obj interface{}) string {
 	res, _ := json.Marshal(obj)
 	return string(res)
@@ -252,8 +291,4 @@ func (jsonObject *JSONObject) String() string {
 	// res, _ := json.Marshal(jsonObject)
 	// return string(res)
 	return jsonObject.ToJSONString()
-}
-
-func ToStr(v interface{}) string {
-	return fmt.Sprintf("%v", v)
 }

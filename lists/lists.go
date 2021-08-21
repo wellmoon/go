@@ -1,7 +1,11 @@
 package lists
 
 import (
+	"encoding/json"
+	"reflect"
 	"sync"
+
+	Log "github.com/wellmoon/go/logger"
 )
 
 type ArrayList struct {
@@ -65,6 +69,38 @@ func (arrayList *ArrayList) Get(idx int) interface{} {
 
 func (arrayList *ArrayList) GetArray() []interface{} {
 	return arrayList.innerList
+}
+
+func (arrayList *ArrayList) MarshalJSON() ([]byte, error) {
+	res, err := json.Marshal(arrayList.innerList)
+	return res, err
+}
+
+func StringSliceContain(list []string, val string) bool {
+	for _, v := range list {
+		if v == val {
+			return true
+		}
+	}
+	return false
+}
+
+func ToArrayList(al interface{}) *ArrayList {
+	v := reflect.ValueOf(al)
+	switch al := al.(type) {
+	case *interface{}:
+		v = reflect.ValueOf(*al)
+	}
+	l := ArrayList{}
+	ret := v.MethodByName("MarshalJSON").Call([]reflect.Value{})
+	if _, ok := ret[1].Interface().(error); ok {
+		Log.Error("reflect invoke MarshalJSON error")
+		return nil
+	}
+	b := ret[0].Interface().([]byte)
+
+	json.Unmarshal(b, &l.innerList)
+	return &l
 }
 
 // func (arrayList ArrayList) addAndGetIdx() int32 {

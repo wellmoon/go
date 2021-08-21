@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"strings"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -55,7 +56,7 @@ func (dao Dao) QueryMap(sql string, args ...interface{}) map[string]string {
 		_ = rows.Scan(scanArgs...)
 		for i, col := range values {
 			if col != nil {
-				record[columns[i]] = string(col.([]byte))
+				record[strings.ToLower(columns[i])] = string(col.([]byte))
 			}
 		}
 	}
@@ -86,7 +87,7 @@ func (dao Dao) QueryList(sql string, args ...interface{}) *ListResult {
 		_ = rows.Scan(scanArgs...)
 		for i, col := range values {
 			if col != nil {
-				record[columns[i]] = string(col.([]byte))
+				record[strings.ToLower(columns[i])] = string(col.([]byte))
 			}
 		}
 		list = append(list, record)
