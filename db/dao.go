@@ -36,11 +36,11 @@ func NewDao(ip string, port string, dbUser string, dbPass string, dbName string)
 	return &dbStu
 }
 
-func (dao Dao) QueryMap(sql string, args ...interface{}) map[string]string {
+func (dao Dao) QueryMap(sql string, args ...interface{}) (map[string]string, error) {
 	rows, err := dao.db.Query(sql, args...)
 	if err != nil {
 		Log.Error("查询失败，sql is {}, err : {}", sql, err)
-		return nil
+		return nil, err
 	}
 	defer rows.Close()
 	columns, _ := rows.Columns()
@@ -60,16 +60,16 @@ func (dao Dao) QueryMap(sql string, args ...interface{}) map[string]string {
 			}
 		}
 	}
-	return record
+	return record, nil
 }
 
-func (dao Dao) QueryList(sql string, args ...interface{}) *ListResult {
+func (dao Dao) QueryList(sql string, args ...interface{}) (*ListResult, error) {
 	t1 := time.Now()
 	rows, err := dao.db.Query(sql, args...)
 	Log.Debug("查询list耗时 %.2f 秒，sql is {}", time.Since(t1).Seconds(), sql)
 	if err != nil {
 		Log.Error("查询失败，sql is {}, err : {}", sql, err)
-		return nil
+		return nil, err
 	}
 	defer rows.Close()
 	columns, _ := rows.Columns()
@@ -92,21 +92,21 @@ func (dao Dao) QueryList(sql string, args ...interface{}) *ListResult {
 		}
 		list = append(list, record)
 	}
-	return &ListResult{columns, &list}
+	return &ListResult{columns, &list}, nil
 }
 
-func (dao Dao) Update(sql string, args ...interface{}) (int64, string) {
+func (dao Dao) Update(sql string, args ...interface{}) (int64, error) {
 
 	result, err := dao.db.Exec(sql, args...)
 	if err != nil {
 		Log.Error("exec failed err is {}, sql is {}", err, sql)
-		return 0, err.Error()
+		return 0, err
 	}
 
 	idAff, err := result.RowsAffected()
 	if err != nil {
 		Log.Error("RowsAffected failed {}", err)
-		return 0, err.Error()
+		return 0, err
 	}
-	return idAff, ""
+	return idAff, nil
 }

@@ -22,7 +22,12 @@ func NewObject() *JSONObject {
 }
 
 func (jsonObject *JSONObject) Put(key string, val interface{}) {
-	jsonObject.ItemMap[key] = &val
+	kind := reflect.TypeOf(val).Kind()
+	if kind == reflect.Ptr {
+		jsonObject.ItemMap[key] = val
+	} else {
+		jsonObject.ItemMap[key] = &val
+	}
 }
 
 func (jsonObject *JSONObject) Contains(key string) bool {
@@ -32,57 +37,92 @@ func (jsonObject *JSONObject) Contains(key string) bool {
 
 func (jsonObject *JSONObject) GetInt(key string) int {
 	value := jsonObject.ItemMap[key]
-	return ToInt(value)
+	res, err := ToInt(value)
+	if err != nil {
+		panic(err)
+	}
+	return res
 }
 
 func (jsonObject *JSONObject) GetInt64(key string) int64 {
 	value := jsonObject.ItemMap[key]
-	return ToInt64(value)
+	res, err := ToInt64(value)
+	if err != nil {
+		panic(err)
+	}
+	return res
 }
 
-func ToInt(value interface{}) int {
+func ToInt(value interface{}) (int, error) {
 	switch value := value.(type) {
 	case string:
 		r, err := strconv.Atoi(value)
 		if err != nil {
 			Log.Debug("GetInt by strconv.Atoi error: {}", err)
 		}
-		return r
+		return r, err
 	case int:
-		return value
+		return value, nil
 	case int64:
-		return int(value)
+		return int(value), nil
 	case int32:
-		return int(value)
+		return int(value), nil
 	default:
 		r, err := strconv.Atoi(ToStr(value))
 		if err != nil {
 			Log.Debug("GetInt error for type {}", reflect.TypeOf(value))
 		}
-		return r
+		return r, err
 	}
 }
 
-func ToInt64(value interface{}) int64 {
+func ToInt64(value interface{}) (int64, error) {
 	switch value := value.(type) {
 	case string:
 		r, err := strconv.Atoi(value)
 		if err != nil {
 			Log.Debug("GetInt64 by strconv.Atoi error: {}", err)
 		}
-		return int64(r)
+		return int64(r), err
 	case int:
-		return int64(value)
+		return int64(value), nil
 	case int64:
-		return value
+		return value, nil
 	case int32:
-		return int64(value)
+		return int64(value), nil
 	default:
 		r, err := strconv.Atoi(ToStr(value))
 		if err != nil {
 			Log.Debug("GetInt64 error for type {}", reflect.TypeOf(value))
 		}
-		return int64(r)
+		return int64(r), err
+	}
+}
+
+func ToFloat64(value interface{}) (float64, error) {
+	switch value := value.(type) {
+	case string:
+		r, err := strconv.ParseFloat(value, 64)
+		if err != nil {
+			Log.Debug("ToFloat64 error : {}", err)
+		}
+		return r, err
+	case int:
+		return float64(value), nil
+	case int64:
+		return float64(value), nil
+	case int32:
+		return float64(value), nil
+	case float32:
+		return float64(value), nil
+	case float64:
+		return value, nil
+	default:
+		r, err := strconv.ParseFloat(ToStr(value), 64)
+		if err != nil {
+			Log.Debug("ToFloat64 error : {}", err)
+		}
+		return r, err
 	}
 }
 
@@ -91,11 +131,11 @@ func (jsonObject *JSONObject) GetString(key string) string {
 	return ToStr(value)
 }
 
-func ToStr(value interface{}) string {
-	if value == nil {
+func ToStr(inter interface{}) string {
+	if inter == nil {
 		return ""
 	}
-	switch value := value.(type) {
+	switch value := inter.(type) {
 	case string:
 		return value
 	case int:
@@ -105,12 +145,38 @@ func ToStr(value interface{}) string {
 	case float64:
 		return decimal.NewFromFloat(value).String()
 	case *interface{}:
-		return fmt.Sprintf("%v", *value)
+		s, _ := interfaceToString(inter)
+		return s
 	default:
-		Log.Debug("GetString for type {}", reflect.TypeOf(value))
-		return fmt.Sprintf("%v", value)
+		s, err := interfaceToString(inter)
+		if err != nil {
+			Log.Debug("GetString for type {}", reflect.TypeOf(value))
+			json.Marshal(value)
+			return fmt.Sprintf("%v", value)
+		}
+		return s
 	}
 }
+
+func interfaceToString(inter interface{}) (string, error) {
+	s, _ := json.Marshal(inter)
+	return string(s), nil
+}
+
+// func invokeMarshalJSON(inter interface{}) (string, error) {
+// 	v := reflect.ValueOf(inter)
+// 	switch al := inter.(type) {
+// 	case *interface{}:
+// 		v = reflect.ValueOf(*al)
+// 	}
+// 	ret := v.MethodByName("MarshalJSON").Call([]reflect.Value{})
+// 	if err, ok := ret[1].Interface().(error); ok {
+// 		Log.Error("reflect invoke MarshalJSON error")
+// 		return "", err
+// 	}
+// 	b := ret[0].Interface().([]byte)
+// 	return string(b), nil
+// }
 
 func (jsonObject *JSONObject) GetFloat(key string) float64 {
 	value := jsonObject.ItemMap[key]
@@ -184,11 +250,11 @@ func (jsonObject *JSONObject) GetStringArray(key string) ([]string, error) {
 
 func (jsonObject *JSONObject) GetJSONObject(key string) (*JSONObject, error) {
 	value := jsonObject.ItemMap[key]
-	val, ok := value.(string)
-	if !ok {
-		Log.Fatal("convert to JSONObject error, value is {}", value)
-	}
-	result, err := ParseJSONObject(val)
+	// val, ok := value.(string)
+	// if !ok {
+	// 	Log.Fatal("convert to JSONObject error, value is {}", value)
+	// }
+	result, err := ParseJSONObject(value)
 	return result, err
 }
 
@@ -197,29 +263,40 @@ func (jsonObject *JSONObject) Size() int {
 }
 
 func ParseJSONObject(inter interface{}) (*JSONObject, error) {
-	typeStr := reflect.TypeOf(inter).String()
-	jsonObject := NewObject()
-	if strings.HasPrefix(typeStr, "map") {
+	if inter == nil {
+		return nil, errors.New("ParseJSONObject param is nil")
+	}
+
+	kind := reflect.TypeOf(inter).Kind()
+	if kind == reflect.Map {
 		// 如果是map
 		mapRes, ok := inter.(map[string]interface{})
 		if ok {
+			jsonObject := NewObject()
 			jsonObject.ItemMap = mapRes
 			return jsonObject, nil
 		}
+	} else if kind == reflect.Ptr {
+		res, ok := inter.(*JSONObject)
+		if ok {
+			return res, nil
+		}
 	}
 
-	var str string
-	var ok bool
-	str, ok = inter.(string)
-	if !ok {
-		str = ToStr(inter)
+	jsonObject := NewObject()
+	switch value := inter.(type) {
+	case string:
+		err := json.Unmarshal([]byte(value), &jsonObject.ItemMap)
+		if err != nil {
+			Log.Error("string ParseJSONObject error, string is {}, err is {}", value, err)
+			return nil, err
+		}
+		return jsonObject, nil
+	default:
+		Log.Error("string ParseJSONObject error, type is {}", value)
+		return nil, errors.New("ParseJSONObject error, type is not correct")
 	}
-	err := json.Unmarshal([]byte(str), &jsonObject.ItemMap)
-	if err != nil {
-		Log.Error("string ParseJSONObject error, string is {}, err is {}", str, err)
-		return nil, err
-	}
-	return jsonObject, nil
+
 }
 
 func ParseMap(inter interface{}) (map[string]interface{}, error) {
@@ -263,7 +340,7 @@ func ParseBytes(bytes []byte) *JSONObject {
 	return jsonObject
 }
 
-func ParseArray(str string, inter *[]interface{}) error {
+func ParseArray(str string, inter interface{}) error {
 	err := json.Unmarshal([]byte(str), inter)
 	if err != nil {
 		Log.Error("string ParseArray error, string is {}, err is {}", str, err)
@@ -291,4 +368,14 @@ func (jsonObject *JSONObject) String() string {
 	// res, _ := json.Marshal(jsonObject)
 	// return string(res)
 	return jsonObject.ToJSONString()
+}
+
+func IsEmpty(s string) bool {
+	return len(s) == 0
+}
+
+func (jsonObject *JSONObject) Each(f func(key string, val interface{})) {
+	for key, val := range jsonObject.ItemMap {
+		f(key, val)
+	}
 }

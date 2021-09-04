@@ -86,21 +86,36 @@ func StringSliceContain(list []string, val string) bool {
 }
 
 func ToArrayList(al interface{}) *ArrayList {
-	v := reflect.ValueOf(al)
-	switch al := al.(type) {
-	case *interface{}:
-		v = reflect.ValueOf(*al)
+
+	kind := reflect.TypeOf(al).Kind()
+	Log.Debug("kind is {}", kind)
+	if kind == reflect.Ptr {
+		return al.(*ArrayList)
+	} else if kind == reflect.Slice {
+		l := ArrayList{}
+		l.innerList = al.([]interface{})
+		return &l
 	}
-	l := ArrayList{}
-	ret := v.MethodByName("MarshalJSON").Call([]reflect.Value{})
-	if _, ok := ret[1].Interface().(error); ok {
-		Log.Error("reflect invoke MarshalJSON error")
+
+	switch value := al.(type) {
+	case string:
+		l := ArrayList{}
+		json.Unmarshal([]byte(value), &l.innerList)
+		return &l
+	default:
+		Log.Error("ToArrayList error for {}", value)
 		return nil
 	}
-	b := ret[0].Interface().([]byte)
+}
 
-	json.Unmarshal(b, &l.innerList)
-	return &l
+// sample
+// delList.Each(func(idx int, v interface{}) {
+//     do something
+// })
+func (arrayList *ArrayList) Each(f func(key int, val interface{})) {
+	for idx, val := range arrayList.innerList {
+		f(idx, val)
+	}
 }
 
 // func (arrayList ArrayList) addAndGetIdx() int32 {
