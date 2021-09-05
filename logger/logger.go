@@ -97,6 +97,9 @@ func getStack() string {
 	var res string
 	var arr []string
 	res = string(debug.Stack())
+	fmt.Println("=====================")
+	fmt.Println(res)
+	fmt.Println("=====================")
 	arr = strings.Split(res, "github.com/wellmoon/go/logger/logger.go:")
 	res = arr[len(arr)-1]
 	arr = strings.Split(res, "\n")
