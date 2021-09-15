@@ -336,6 +336,7 @@ func ParseBytes(bytes []byte) *JSONObject {
 	err := json.Unmarshal(bytes, &jsonObject.ItemMap)
 	if err != nil {
 		Log.Error("string ParseBytes error,  err is {}", err)
+		return nil
 	}
 	return jsonObject
 }
@@ -368,6 +369,10 @@ func (jsonObject *JSONObject) String() string {
 	// res, _ := json.Marshal(jsonObject)
 	// return string(res)
 	return jsonObject.ToJSONString()
+}
+
+func (jsonObject *JSONObject) IsNull() bool {
+	return jsonObject.ItemMap == nil
 }
 
 func IsEmpty(s string) bool {

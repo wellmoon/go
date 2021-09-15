@@ -109,6 +109,7 @@ func SendReq(url string, requestType string, params map[string]string, headers m
 	request, err := http.NewRequest(reqType, url, strings.NewReader(paramStr))
 	if err != nil {
 		Log.Error("NewRequest error : {}", err)
+		return "", nil, nil
 	}
 
 	if len(headers) > 0 {
@@ -121,6 +122,7 @@ func SendReq(url string, requestType string, params map[string]string, headers m
 	response, err := client.Do(request)
 	if err != nil {
 		Log.Error("client Do error : {}", err)
+		return "", nil, nil
 	}
 	defer response.Body.Close()
 	respHeaders := response.Header
@@ -138,6 +140,7 @@ func SendReq(url string, requestType string, params map[string]string, headers m
 	resBytes, err := ioutil.ReadAll(response.Body)
 	if err != nil {
 		Log.Error("read resp error : {}", err)
+		return "", nil, nil
 	}
 	return string(resBytes), respHeaderMap, respCookiesMap
 

@@ -44,6 +44,9 @@ func (dao Dao) QueryMap(sql string, args ...interface{}) (map[string]string, err
 	}
 	defer rows.Close()
 	columns, _ := rows.Columns()
+	for i := 0; i < len(columns); i++ {
+		columns[i] = strings.ToLower(columns[i])
+	}
 	scanArgs := make([]interface{}, len(columns))
 	values := make([]interface{}, len(columns))
 	for j := range values {
@@ -73,6 +76,9 @@ func (dao Dao) QueryList(sql string, args ...interface{}) (*ListResult, error) {
 	}
 	defer rows.Close()
 	columns, _ := rows.Columns()
+	for i := 0; i < len(columns); i++ {
+		columns[i] = strings.ToLower(columns[i])
+	}
 	scanArgs := make([]interface{}, len(columns))
 	values := make([]interface{}, len(columns))
 	for j := range values {
