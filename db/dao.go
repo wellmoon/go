@@ -2,10 +2,13 @@ package db
 
 import (
 	"database/sql"
+	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/shopspring/decimal"
 
 	Log "github.com/wellmoon/go/logger"
 )
@@ -19,13 +22,13 @@ type Dao struct {
 	db *sql.DB
 }
 
-func NewDao(ip string, port string, dbUser string, dbPass string, dbName string) *Dao {
+func NewDao(ip string, port string, dbUser string, dbPass string, dbName string) (*Dao, error) {
 	url := dbUser + ":" + dbPass + "@tcp(" + ip + ":" + port + ")/" + dbName + "?charset=utf8"
-
+	Log.Debug("database url : {}", url)
 	db, err := sql.Open("mysql", url)
 	if err != nil {
 		Log.Debug("connect db faild, url is [{}], err : {}", url, err)
-		return nil
+		return nil, err
 	}
 	db.SetMaxOpenConns(2000)
 	db.SetMaxIdleConns(1000)
@@ -33,7 +36,7 @@ func NewDao(ip string, port string, dbUser string, dbPass string, dbName string)
 
 	var dbStu Dao
 	dbStu.db = db
-	return &dbStu
+	return &dbStu, nil
 }
 
 func (dao Dao) QueryMap(sql string, args ...interface{}) (map[string]string, error) {
@@ -55,15 +58,32 @@ func (dao Dao) QueryMap(sql string, args ...interface{}) (map[string]string, err
 
 	record := make(map[string]string)
 	for rows.Next() {
-		//将行数据保存到record字典
 		_ = rows.Scan(scanArgs...)
 		for i, col := range values {
 			if col != nil {
-				record[strings.ToLower(columns[i])] = string(col.([]byte))
+				record[columns[i]] = toStr(col)
 			}
 		}
 	}
 	return record, nil
+}
+
+func toStr(inter interface{}) string {
+	if inter == nil {
+		return ""
+	}
+	switch value := inter.(type) {
+	case string:
+		return value
+	case int:
+		return strconv.Itoa(value)
+	case int64:
+		return fmt.Sprintf("%v", value)
+	case float64:
+		return decimal.NewFromFloat(value).String()
+	default:
+		return string(inter.([]byte))
+	}
 }
 
 func (dao Dao) QueryList(sql string, args ...interface{}) (*ListResult, error) {
@@ -93,7 +113,7 @@ func (dao Dao) QueryList(sql string, args ...interface{}) (*ListResult, error) {
 		_ = rows.Scan(scanArgs...)
 		for i, col := range values {
 			if col != nil {
-				record[strings.ToLower(columns[i])] = string(col.([]byte))
+				record[columns[i]] = toStr(col)
 			}
 		}
 		list = append(list, record)

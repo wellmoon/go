@@ -76,6 +76,11 @@ func (arrayList *ArrayList) MarshalJSON() ([]byte, error) {
 	return res, err
 }
 
+func (arrayList *ArrayList) ToString() string {
+	res, _ := json.Marshal(arrayList.innerList)
+	return string(res)
+}
+
 func StringSliceContain(list []string, val string) bool {
 	for _, v := range list {
 		if v == val {

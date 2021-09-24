@@ -22,12 +22,13 @@ func NewObject() *JSONObject {
 }
 
 func (jsonObject *JSONObject) Put(key string, val interface{}) {
-	kind := reflect.TypeOf(val).Kind()
-	if kind == reflect.Ptr {
-		jsonObject.ItemMap[key] = val
-	} else {
-		jsonObject.ItemMap[key] = &val
-	}
+	// kind := reflect.TypeOf(val).Kind()
+	// if kind == reflect.Ptr {
+	// 	jsonObject.ItemMap[key] = val
+	// } else {
+	// 	jsonObject.ItemMap[key] = &val
+	// }
+	jsonObject.ItemMap[key] = val
 }
 
 func (jsonObject *JSONObject) Contains(key string) bool {
@@ -280,11 +281,29 @@ func ParseJSONObject(inter interface{}) (*JSONObject, error) {
 		res, ok := inter.(*JSONObject)
 		if ok {
 			return res, nil
+		} else {
+			b, err := json.Marshal(inter)
+			if err != nil {
+				return nil, errors.New("can't convert to JSONObject")
+			}
+			jsonObject := NewObject()
+			err = json.Unmarshal(b, &jsonObject.ItemMap)
+			if err != nil {
+				return nil, errors.New("can't convert to JSONObject")
+			}
+			return jsonObject, nil
 		}
 	}
 
 	jsonObject := NewObject()
 	switch value := inter.(type) {
+	case []byte:
+		err := json.Unmarshal(value, &jsonObject.ItemMap)
+		if err != nil {
+			Log.Error("[]byte ParseJSONObject error, {}", err)
+			return nil, err
+		}
+		return jsonObject, nil
 	case string:
 		err := json.Unmarshal([]byte(value), &jsonObject.ItemMap)
 		if err != nil {
