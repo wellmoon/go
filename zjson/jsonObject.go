@@ -31,6 +31,10 @@ func (jsonObject *JSONObject) Put(key string, val interface{}) {
 	jsonObject.ItemMap[key] = val
 }
 
+func (jsonObject *JSONObject) Remove(key string) {
+	delete(jsonObject.ItemMap, key)
+}
+
 func (jsonObject *JSONObject) Contains(key string) bool {
 	var _, ok = jsonObject.ItemMap[key]
 	return ok
@@ -269,30 +273,37 @@ func ParseJSONObject(inter interface{}) (*JSONObject, error) {
 	}
 
 	kind := reflect.TypeOf(inter).Kind()
-	if kind == reflect.Map {
-		// 如果是map
+	if kind == reflect.Map || kind == reflect.Ptr {
 		mapRes, ok := inter.(map[string]interface{})
 		if ok {
 			jsonObject := NewObject()
 			jsonObject.ItemMap = mapRes
 			return jsonObject, nil
-		}
-	} else if kind == reflect.Ptr {
-		res, ok := inter.(*JSONObject)
-		if ok {
-			return res, nil
 		} else {
+			// cast to map fail, convert by bytes. but value object is a new object, memory address will be changed
 			b, err := json.Marshal(inter)
 			if err != nil {
-				return nil, errors.New("can't convert to JSONObject")
+				return nil, errors.New("can't convert map to JSONObject")
 			}
 			jsonObject := NewObject()
 			err = json.Unmarshal(b, &jsonObject.ItemMap)
 			if err != nil {
-				return nil, errors.New("can't convert to JSONObject")
+				return nil, errors.New("can't convert map to JSONObject")
 			}
 			return jsonObject, nil
 		}
+
+	} else if kind == reflect.Ptr {
+		b, err := json.Marshal(inter)
+		if err != nil {
+			return nil, errors.New("can't convert to JSONObject")
+		}
+		jsonObject := NewObject()
+		err = json.Unmarshal(b, &jsonObject.ItemMap)
+		if err != nil {
+			return nil, errors.New("can't convert to JSONObject")
+		}
+		return jsonObject, nil
 	}
 
 	jsonObject := NewObject()
@@ -307,12 +318,12 @@ func ParseJSONObject(inter interface{}) (*JSONObject, error) {
 	case string:
 		err := json.Unmarshal([]byte(value), &jsonObject.ItemMap)
 		if err != nil {
-			Log.Error("string ParseJSONObject error, string is {}, err is {}", value, err)
+			Log.Error("string ParseJSONObject error : {}", err)
 			return nil, err
 		}
 		return jsonObject, nil
 	default:
-		Log.Error("string ParseJSONObject error, type is {}", value)
+		Log.Error("ParseJSONObject error, type is {}", kind)
 		return nil, errors.New("ParseJSONObject error, type is not correct")
 	}
 
@@ -372,6 +383,11 @@ func ParseArray(str string, inter interface{}) error {
 func (jsonObject *JSONObject) ToJSONString() string {
 	res, _ := json.Marshal(jsonObject.ItemMap)
 	return string(res)
+}
+
+func (jsonObject *JSONObject) ToBytes() []byte {
+	res, _ := json.Marshal(jsonObject.ItemMap)
+	return res
 }
 
 func (jsonObject *JSONObject) MarshalJSON() ([]byte, error) {

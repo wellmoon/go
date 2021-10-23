@@ -50,7 +50,7 @@ func (p *Zpool) GetWaitNum() int {
 	return len(p.waitCh)
 }
 
-func (p *Zpool) Put(f interface{}, params ...interface{}) {
+func (p *Zpool) Run(f interface{}, params ...interface{}) {
 	zf := &zfunc{}
 	zf.f = f
 	zf.p = params
@@ -60,9 +60,9 @@ func (p *Zpool) Put(f interface{}, params ...interface{}) {
 func (p *Zpool) start() {
 	go func() {
 		for {
+			zf := <-p.waitCh
 			p.curCh <- 1 // occupy a goroutine
 			go func() {
-				zf := <-p.waitCh
 				zf.invoke()
 				_, ok := <-p.curCh // release a goroutine
 				if !ok {

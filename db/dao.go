@@ -23,7 +23,15 @@ type Dao struct {
 }
 
 func NewDao(ip string, port string, dbUser string, dbPass string, dbName string) (*Dao, error) {
+
+	err := Ping(ip, port, dbUser, dbPass, dbName)
+	if err != nil {
+		Log.Debug("ping connect db fail")
+		return nil, err
+	}
+
 	url := dbUser + ":" + dbPass + "@tcp(" + ip + ":" + port + ")/" + dbName + "?charset=utf8"
+
 	Log.Debug("database url : {}", url)
 	db, err := sql.Open("mysql", url)
 	if err != nil {
@@ -32,11 +40,29 @@ func NewDao(ip string, port string, dbUser string, dbPass string, dbName string)
 	}
 	db.SetMaxOpenConns(2000)
 	db.SetMaxIdleConns(1000)
-	db.Ping()
-
+	err = db.Ping()
+	if err != nil {
+		return nil, err
+	}
+	Log.Debug("connect db success")
 	var dbStu Dao
 	dbStu.db = db
 	return &dbStu, nil
+}
+
+func Ping(ip string, port string, dbUser string, dbPass string, dbName string) error {
+	testUrl := dbUser + ":" + dbPass + "@tcp(" + ip + ":" + port + ")/" + dbName + "?charset=utf8&timeout=3s"
+	db, err := sql.Open("mysql", testUrl)
+	if err != nil {
+		Log.Debug("connect db faild, url is [{}], err : {}", testUrl, err)
+		return err
+	}
+	defer db.Close()
+	err = db.Ping()
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (dao Dao) QueryMap(sql string, args ...interface{}) (map[string]string, error) {
@@ -109,7 +135,6 @@ func (dao Dao) QueryList(sql string, args ...interface{}) (*ListResult, error) {
 
 	for rows.Next() {
 		record := make(map[string]string)
-		//将行数据保存到record字典
 		_ = rows.Scan(scanArgs...)
 		for i, col := range values {
 			if col != nil {

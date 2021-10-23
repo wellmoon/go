@@ -22,6 +22,10 @@ func GetTimeMillis() int64 {
 	return time.Now().UnixNano() / 1000000
 }
 
+func GetTimeStr() string {
+	return time.Now().Format("20060102150405")
+}
+
 func Sleepms(ms int) {
 	time.Sleep(time.Duration(ms) * time.Millisecond)
 }

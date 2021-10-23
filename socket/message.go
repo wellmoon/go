@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	Log "github.com/wellmoon/go/logger"
+	"github.com/wellmoon/go/zjson"
 )
 
 type Message struct {
@@ -76,9 +77,15 @@ func (message *Message) SendMsg(conn interface{}) *Message {
 		ret = v.MethodByName("Write").Call(in)
 	}
 
-	// 如果err不是nil
-	if _, ok := ret[1].Interface().(error); ok {
-		Log.Error("发送消息失败：{}", message.Content)
+	if err, ok := ret[1].Interface().(error); ok {
+		Log.Error("send message error: {}, message :{}", err, message.Content)
+		res := &Message{}
+		json := zjson.NewObject()
+		json.Put("code", 1)
+		json.Put("errMsg", "send message error")
+		res.Code = 1
+		res.Content = json.ToJSONString()
+		return res
 	}
 
 	if strings.Contains(message.MsgType, "Request") {

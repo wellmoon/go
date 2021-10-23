@@ -8,17 +8,17 @@ import (
 )
 
 func main() {
-	testPool()
-	time.Sleep(time.Duration(10000) * time.Second)
+	b := []byte{0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00}
+	fmt.Println(string(b))
 }
 
 func testPool() {
 	zpool := pool.New()
 
 	for i := 0; i < 100; i++ {
-		zpool.Put(testFunc, "test", i)
+		zpool.Run(testFunc, "test", i)
 	}
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 30; i++ {
 		fmt.Println("curNum:", zpool.GetCurNum(), "waitNum:", zpool.GetWaitNum())
 		time.Sleep(time.Duration(3) * time.Second)
 	}

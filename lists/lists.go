@@ -3,14 +3,20 @@ package lists
 import (
 	"encoding/json"
 	"reflect"
+	"sort"
 	"sync"
 
 	Log "github.com/wellmoon/go/logger"
+	"github.com/wellmoon/go/utils"
+	"github.com/wellmoon/go/zjson"
 )
 
 type ArrayList struct {
 	innerList []interface{}
 	mutex     sync.Mutex
+}
+type Serializable interface {
+	ToString()
 }
 
 func NewArrayList() *ArrayList {
@@ -71,6 +77,13 @@ func (arrayList *ArrayList) GetArray() []interface{} {
 	return arrayList.innerList
 }
 
+func (arrayList *ArrayList) GetSubArray(from int, to int) []interface{} {
+	if to > arrayList.Size() {
+		to = arrayList.Size()
+	}
+	return arrayList.innerList[from:to]
+}
+
 func (arrayList *ArrayList) MarshalJSON() ([]byte, error) {
 	res, err := json.Marshal(arrayList.innerList)
 	return res, err
@@ -111,6 +124,43 @@ func ToArrayList(al interface{}) *ArrayList {
 		Log.Error("ToArrayList error for {}", value)
 		return nil
 	}
+}
+
+// sort by ToString(), if ToString method not exist, sort by hashCode
+func (arrayList *ArrayList) Sort() *ArrayList {
+	tempMap := make(map[string]interface{})
+	keys := make([]string, 0)
+	for _, val := range arrayList.innerList {
+		kind := reflect.TypeOf(val).Kind()
+		if kind == reflect.Ptr {
+			in := make([]reflect.Value, 0)
+			v := reflect.ValueOf(val)
+			rv := v.MethodByName("ToString")
+			if !rv.IsValid() {
+				key := zjson.ToStr(utils.HashCode(zjson.ToStr(val)))
+				tempMap[key] = val
+				keys = append(keys, key)
+			} else {
+				ret := rv.Call(in)
+				key := ret[0].Interface().(string)
+				tempMap[key] = val
+				keys = append(keys, key)
+			}
+
+		} else {
+			key := zjson.ToStr(utils.HashCode(zjson.ToStr(val)))
+			tempMap[key] = val
+			keys = append(keys, key)
+		}
+	}
+	resList := make([]interface{}, 0)
+	sort.Strings(sort.StringSlice(keys))
+	for _, key := range keys {
+		resList = append(resList, tempMap[key])
+	}
+	result := &ArrayList{}
+	result.innerList = resList
+	return result
 }
 
 // sample
