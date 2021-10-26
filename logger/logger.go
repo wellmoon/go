@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"runtime/debug"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -54,12 +55,16 @@ func getLogPath() string {
 
 // 日志文件每小时生成一个，判断是否需要切换日志文件
 // 如果需要切换，返回true，并且返回切换后的文件
+var switchLock sync.Mutex
+
 func switchFile(logFile string) (bool, *os.File) {
 	var res bool
 	if !pathExists(getLogPath() + logFile + ".log") {
 		file, _ := os.Create(getLogPath() + logFile + ".log")
 		return false, file
 	} else {
+		switchLock.Lock()
+		defer switchLock.Unlock()
 		oldFile, _ := os.OpenFile(getLogPath()+logFile+".log", os.O_RDONLY, os.ModePerm)
 		fileStat, _ := oldFile.Stat()
 		modTime := fileStat.ModTime().Format("2006010215")

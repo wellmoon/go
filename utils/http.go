@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	Log "github.com/wellmoon/go/logger"
 )
@@ -100,7 +101,7 @@ func IsDir(path string) bool {
 }
 
 func SendReq(url string, requestType string, params map[string]string, headers map[string]string) (string, map[string]string, map[string]string, error) {
-	client := &http.Client{}
+	client := &http.Client{Timeout: 15 * time.Second}
 	reqType := "GET"
 	requestType = strings.ToUpper(requestType)
 	if requestType == "POST" {
