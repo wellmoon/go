@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/shopspring/decimal"
-	Log "github.com/wellmoon/go/logger"
 )
 
 type JSONObject struct {
@@ -62,9 +61,6 @@ func ToInt(value interface{}) (int, error) {
 	switch value := value.(type) {
 	case string:
 		r, err := strconv.Atoi(value)
-		if err != nil {
-			Log.Debug("GetInt by strconv.Atoi error: {}", err)
-		}
 		return r, err
 	case int:
 		return value, nil
@@ -74,10 +70,30 @@ func ToInt(value interface{}) (int, error) {
 		return int(value), nil
 	default:
 		r, err := strconv.Atoi(ToStr(value))
-		if err != nil {
-			Log.Debug("GetInt error for type {}", reflect.TypeOf(value))
-		}
 		return r, err
+	}
+}
+
+func ToInt32(value interface{}) (int32, error) {
+	switch value := value.(type) {
+	case string:
+		r, err := strconv.Atoi(value)
+		if err != nil {
+			return 0, err
+		}
+		return int32(r), err
+	case int:
+		return int32(value), nil
+	case int32:
+		return value, nil
+	case int64:
+		return int32(value), nil
+	default:
+		r, err := strconv.Atoi(ToStr(value))
+		if err != nil {
+			return 0, err
+		}
+		return int32(r), err
 	}
 }
 
@@ -86,7 +102,7 @@ func ToInt64(value interface{}) (int64, error) {
 	case string:
 		r, err := strconv.Atoi(value)
 		if err != nil {
-			Log.Debug("GetInt64 by strconv.Atoi error: {}", err)
+			return 0, err
 		}
 		return int64(r), err
 	case int:
@@ -98,7 +114,7 @@ func ToInt64(value interface{}) (int64, error) {
 	default:
 		r, err := strconv.Atoi(ToStr(value))
 		if err != nil {
-			Log.Debug("GetInt64 error for type {}", reflect.TypeOf(value))
+			return 0, err
 		}
 		return int64(r), err
 	}
@@ -108,9 +124,6 @@ func ToFloat64(value interface{}) (float64, error) {
 	switch value := value.(type) {
 	case string:
 		r, err := strconv.ParseFloat(value, 64)
-		if err != nil {
-			Log.Debug("ToFloat64 error : {}", err)
-		}
 		return r, err
 	case int:
 		return float64(value), nil
@@ -124,9 +137,6 @@ func ToFloat64(value interface{}) (float64, error) {
 		return value, nil
 	default:
 		r, err := strconv.ParseFloat(ToStr(value), 64)
-		if err != nil {
-			Log.Debug("ToFloat64 error : {}", err)
-		}
 		return r, err
 	}
 }
@@ -155,7 +165,6 @@ func ToStr(inter interface{}) string {
 	default:
 		s, err := interfaceToString(inter)
 		if err != nil {
-			Log.Debug("GetString for type {}", reflect.TypeOf(value))
 			json.Marshal(value)
 			return fmt.Sprintf("%v", value)
 		}
@@ -188,7 +197,7 @@ func (jsonObject *JSONObject) GetFloat(key string) float64 {
 	v := value
 	val, ok := v.(float64)
 	if !ok {
-		Log.Fatal("convert to float error, value is {}", v)
+		panic("convert to float error")
 	}
 	return val
 }
@@ -223,7 +232,6 @@ func (jsonObject *JSONObject) GetArray(key string) ([]interface{}, error) {
 		// 尝试把字符串转为slice
 		str, sok := v.(string)
 		if !sok {
-			Log.Error("convert to array error, value is {}", v)
 			return nil, errors.New("convert to array error")
 		}
 		slice := make([]interface{}, 0)
@@ -245,8 +253,7 @@ func (jsonObject *JSONObject) GetStringArray(key string) ([]string, error) {
 	for _, v := range arr {
 		str, sok := v.(string)
 		if !sok {
-			Log.Error("convert {} to string error", v)
-			return nil, err
+			return nil, errors.New("convert to string array error")
 		}
 		strSlice = append(strSlice, str)
 	}
@@ -311,19 +318,16 @@ func ParseJSONObject(inter interface{}) (*JSONObject, error) {
 	case []byte:
 		err := json.Unmarshal(value, &jsonObject.ItemMap)
 		if err != nil {
-			Log.Error("[]byte ParseJSONObject error, {}", err)
 			return nil, err
 		}
 		return jsonObject, nil
 	case string:
 		err := json.Unmarshal([]byte(value), &jsonObject.ItemMap)
 		if err != nil {
-			Log.Error("string ParseJSONObject error : {}", err)
 			return nil, err
 		}
 		return jsonObject, nil
 	default:
-		Log.Error("ParseJSONObject error, type is {}", kind)
 		return nil, errors.New("ParseJSONObject error, type is not correct")
 	}
 
@@ -348,24 +352,23 @@ func ParseMap(inter interface{}) (map[string]interface{}, error) {
 	}
 	err := json.Unmarshal([]byte(str), &mapRes)
 	if err != nil {
-		Log.Error("string ParseJSONObject error, string is {}, err is {}", str, err)
 		return nil, err
 	}
 	return mapRes, nil
 }
 
-func Parse(str string, inter interface{}) {
+func Parse(str string, inter interface{}) error {
 	err := json.Unmarshal([]byte(str), inter)
 	if err != nil {
-		Log.Error("string Parse error, string is {}, err is {}", str, err)
+		return err
 	}
+	return nil
 }
 
 func ParseBytes(bytes []byte) *JSONObject {
 	jsonObject := NewObject()
 	err := json.Unmarshal(bytes, &jsonObject.ItemMap)
 	if err != nil {
-		Log.Error("string ParseBytes error,  err is {}", err)
 		return nil
 	}
 	return jsonObject
@@ -374,7 +377,6 @@ func ParseBytes(bytes []byte) *JSONObject {
 func ParseArray(str string, inter interface{}) error {
 	err := json.Unmarshal([]byte(str), inter)
 	if err != nil {
-		Log.Error("string ParseArray error, string is {}, err is {}", str, err)
 		return err
 	}
 	return nil
@@ -396,6 +398,12 @@ func (jsonObject *JSONObject) MarshalJSON() ([]byte, error) {
 }
 
 func ToJSONString(obj interface{}) string {
+	// kind := reflect.TypeOf(obj).Kind()
+	// if kind == reflect.Slice {
+	// 	l := ArrayList{}
+	// 	l.innerList = al.([]interface{})
+	// 	return &l
+	// }
 	res, _ := json.Marshal(obj)
 	return string(res)
 }

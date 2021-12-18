@@ -65,8 +65,14 @@ func switchFile(logFile string) (bool, *os.File) {
 	} else {
 		switchLock.Lock()
 		defer switchLock.Unlock()
-		oldFile, _ := os.OpenFile(getLogPath()+logFile+".log", os.O_RDONLY, os.ModePerm)
-		fileStat, _ := oldFile.Stat()
+		oldFile, err := os.OpenFile(getLogPath()+logFile+".log", os.O_RDONLY, os.ModePerm)
+		if err != nil {
+			return false, nil
+		}
+		fileStat, err := oldFile.Stat()
+		if err != nil {
+			return false, nil
+		}
 		modTime := fileStat.ModTime().Format("2006010215")
 		curTime := time.Now().Format("2006010215")
 		oldFile.Close()
@@ -167,7 +173,7 @@ func Trace(format string, v ...interface{}) {
 }
 
 func Error(format string, v ...interface{}) {
-	switchFile, logFile := switchFile("detail")
+	switchFile, logFile := switchFile("error")
 	if errorLog == nil || switchFile {
 		logWriter := io.MultiWriter(logFile, os.Stdout)
 		errorLog = log.New(logWriter, "[ERROR] ", flag)

@@ -5,6 +5,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -48,7 +49,7 @@ func DownloadFile(url string, locTarget string) (string, error) {
 	_, fileName := filepath.Split(url)
 	resp, err := http.Get(url)
 	if err != nil {
-		Log.Trace("http get", err)
+		Log.Error("http get", err)
 		return "", err
 	}
 	defer func() {
@@ -101,7 +102,19 @@ func IsDir(path string) bool {
 }
 
 func SendReq(url string, requestType string, params map[string]string, headers map[string]string) (string, map[string]string, map[string]string, error) {
-	client := &http.Client{Timeout: 15 * time.Second}
+	return SendReqWithProxy(url, requestType, params, headers, nil)
+
+}
+
+func SendReqWithProxy(url string, requestType string, params map[string]string, headers map[string]string, proxy *url.URL) (string, map[string]string, map[string]string, error) {
+	client := &http.Client{
+		Timeout: 15 * time.Second,
+	}
+	if proxy != nil {
+		client.Transport = &http.Transport{
+			Proxy: http.ProxyURL(proxy),
+		}
+	}
 	reqType := "GET"
 	requestType = strings.ToUpper(requestType)
 	if requestType == "POST" {
@@ -120,7 +133,6 @@ func SendReq(url string, requestType string, params map[string]string, headers m
 
 	request, err := http.NewRequest(reqType, url, strings.NewReader(paramStr))
 	if err != nil {
-		Log.Error("NewRequest error : {}", err)
 		return "", nil, nil, err
 	}
 
@@ -133,7 +145,6 @@ func SendReq(url string, requestType string, params map[string]string, headers m
 	//处理返回结果
 	response, err := client.Do(request)
 	if err != nil {
-		Log.Error("client Do error : {}", err)
 		return "", nil, nil, err
 	}
 	defer response.Body.Close()
@@ -151,7 +162,6 @@ func SendReq(url string, requestType string, params map[string]string, headers m
 
 	resBytes, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		Log.Error("read resp error : {}", err)
 		return "", nil, nil, err
 	}
 	return string(resBytes), respHeaderMap, respCookiesMap, nil

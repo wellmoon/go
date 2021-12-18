@@ -7,7 +7,6 @@ import (
 	"sync"
 
 	Log "github.com/wellmoon/go/logger"
-	"github.com/wellmoon/go/utils"
 	"github.com/wellmoon/go/zjson"
 )
 
@@ -71,6 +70,10 @@ func (arrayList *ArrayList) RemoveAt(idx int) interface{} {
 
 func (arrayList *ArrayList) Get(idx int) interface{} {
 	return arrayList.innerList[idx]
+}
+
+func (arrayList *ArrayList) GetString(idx int) string {
+	return zjson.ToStr(arrayList.innerList[idx])
 }
 
 func (arrayList *ArrayList) GetArray() []interface{} {
@@ -137,7 +140,7 @@ func (arrayList *ArrayList) Sort() *ArrayList {
 			v := reflect.ValueOf(val)
 			rv := v.MethodByName("ToString")
 			if !rv.IsValid() {
-				key := zjson.ToStr(utils.HashCode(zjson.ToStr(val)))
+				key := zjson.ToStr(val)
 				tempMap[key] = val
 				keys = append(keys, key)
 			} else {
@@ -148,7 +151,7 @@ func (arrayList *ArrayList) Sort() *ArrayList {
 			}
 
 		} else {
-			key := zjson.ToStr(utils.HashCode(zjson.ToStr(val)))
+			key := zjson.ToStr(val)
 			tempMap[key] = val
 			keys = append(keys, key)
 		}
