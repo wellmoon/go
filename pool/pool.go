@@ -50,6 +50,12 @@ func (p *Zpool) GetWaitNum() int {
 	return len(p.waitCh)
 }
 
+func (p *Zpool) ClearWait() {
+	for len(p.waitCh) > 0 {
+		<-p.waitCh
+	}
+}
+
 func (p *Zpool) Run(f interface{}, params ...interface{}) {
 	zf := &zfunc{}
 	zf.f = f
