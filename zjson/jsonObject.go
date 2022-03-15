@@ -7,17 +7,21 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/shopspring/decimal"
 )
 
 type JSONObject struct {
 	ItemMap map[string]interface{}
+	lock    sync.Mutex
 }
 
 func NewObject() *JSONObject {
-	itemMap := make(map[string]interface{})
-	return &JSONObject{itemMap}
+	// itemMap := make(map[string]interface{})
+	newObj := &JSONObject{}
+	newObj.ItemMap = make(map[string]interface{})
+	return newObj
 }
 
 func (jsonObject *JSONObject) Put(key string, val interface{}) {
@@ -27,20 +31,26 @@ func (jsonObject *JSONObject) Put(key string, val interface{}) {
 	// } else {
 	// 	jsonObject.ItemMap[key] = &val
 	// }
+	jsonObject.lock.Lock()
+	defer jsonObject.lock.Unlock()
 	jsonObject.ItemMap[key] = val
 }
 
 func (jsonObject *JSONObject) Remove(key string) {
+	jsonObject.lock.Lock()
+	defer jsonObject.lock.Unlock()
 	delete(jsonObject.ItemMap, key)
 }
 
 func (jsonObject *JSONObject) Contains(key string) bool {
+	jsonObject.lock.Lock()
+	defer jsonObject.lock.Unlock()
 	var _, ok = jsonObject.ItemMap[key]
 	return ok
 }
 
 func (jsonObject *JSONObject) GetInt(key string) int {
-	value := jsonObject.ItemMap[key]
+	value := jsonObject.Get(key)
 	res, err := ToInt(value)
 	if err != nil {
 		panic(err)
@@ -49,7 +59,7 @@ func (jsonObject *JSONObject) GetInt(key string) int {
 }
 
 func (jsonObject *JSONObject) GetInt64(key string) int64 {
-	value := jsonObject.ItemMap[key]
+	value := jsonObject.Get(key)
 	res, err := ToInt64(value)
 	if err != nil {
 		panic(err)
@@ -142,7 +152,7 @@ func ToFloat64(value interface{}) (float64, error) {
 }
 
 func (jsonObject *JSONObject) GetString(key string) string {
-	value := jsonObject.ItemMap[key]
+	value := jsonObject.Get(key)
 	return ToStr(value)
 }
 
@@ -193,7 +203,7 @@ func interfaceToString(inter interface{}) (string, error) {
 // }
 
 func (jsonObject *JSONObject) GetFloat(key string) float64 {
-	value := jsonObject.ItemMap[key]
+	value := jsonObject.Get(key)
 	v := value
 	val, ok := v.(float64)
 	if !ok {
@@ -203,7 +213,7 @@ func (jsonObject *JSONObject) GetFloat(key string) float64 {
 }
 
 func (jsonObject *JSONObject) GetBool(key string) bool {
-	value := jsonObject.ItemMap[key]
+	value := jsonObject.Get(key)
 	v := value
 	val, ok := v.(bool)
 	if ok {
@@ -221,11 +231,13 @@ func (jsonObject *JSONObject) GetBool(key string) bool {
 }
 
 func (jsonObject *JSONObject) Get(key string) interface{} {
+	jsonObject.lock.Lock()
+	defer jsonObject.lock.Unlock()
 	return jsonObject.ItemMap[key]
 }
 
 func (jsonObject *JSONObject) GetArray(key string) ([]interface{}, error) {
-	value := jsonObject.ItemMap[key]
+	value := jsonObject.Get(key)
 	v := value
 	val, ok := v.([]interface{})
 	if !ok {
@@ -261,7 +273,7 @@ func (jsonObject *JSONObject) GetStringArray(key string) ([]string, error) {
 }
 
 func (jsonObject *JSONObject) GetJSONObject(key string) (*JSONObject, error) {
-	value := jsonObject.ItemMap[key]
+	value := jsonObject.Get(key)
 	// val, ok := value.(string)
 	// if !ok {
 	// 	Log.Fatal("convert to JSONObject error, value is {}", value)
@@ -423,6 +435,8 @@ func IsEmpty(s string) bool {
 }
 
 func (jsonObject *JSONObject) Each(f func(key string, val interface{})) {
+	jsonObject.lock.Lock()
+	defer jsonObject.lock.Unlock()
 	for key, val := range jsonObject.ItemMap {
 		f(key, val)
 	}

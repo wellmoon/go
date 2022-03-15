@@ -109,7 +109,6 @@ func StringSliceContain(list []string, val string) bool {
 func ToArrayList(al interface{}) *ArrayList {
 
 	kind := reflect.TypeOf(al).Kind()
-	Log.Debug("kind is {}", kind)
 	if kind == reflect.Ptr {
 		return al.(*ArrayList)
 	} else if kind == reflect.Slice {

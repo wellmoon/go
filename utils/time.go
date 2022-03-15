@@ -26,6 +26,17 @@ func GetTimeStr() string {
 	return time.Now().Format("20060102150405")
 }
 
+// formatter : "2006-01-02 15:04:05"
+func GetTimeFromStr(timeStr string, formatter string) *time.Time {
+	loc, _ := time.LoadLocation("Local")
+
+	theTime, err := time.ParseInLocation(formatter, timeStr, loc)
+	if err == nil {
+		return &theTime
+	}
+	return nil
+}
+
 func Sleepms(ms int) {
 	time.Sleep(time.Duration(ms) * time.Millisecond)
 }

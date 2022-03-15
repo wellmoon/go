@@ -167,7 +167,8 @@ func Debug(format string, v ...interface{}) {
 func Trace(format string, v ...interface{}) {
 	switchFile, logFile := switchFile("detail")
 	if traceLog == nil || switchFile {
-		traceLog = log.New(logFile, "[TRACE] ", flag)
+		logWriter := io.MultiWriter(logFile)
+		traceLog = log.New(logWriter, "[TRACE] ", flag)
 	}
 	print(traceLog, format, v...)
 }

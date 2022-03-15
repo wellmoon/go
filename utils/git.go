@@ -11,7 +11,11 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
 )
 
-var GIT_ROOT = "https://codeup.aliyun.com/5f8cff393035265285849090/leridge/"
+var GIT_ROOT = ""
+
+func SetGitRoot(root string) {
+	GIT_ROOT = root
+}
 
 func Clone(project string, clonePath string, branch string, gitUsername string, gitPassword string) string {
 	defer func() {
