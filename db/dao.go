@@ -14,8 +14,8 @@ import (
 )
 
 type ListResult struct {
-	Columns []string             `json:"columns"`
-	List    *[]map[string]string `json:"list"`
+	Columns []string            `json:"columns"`
+	List    []map[string]string `json:"list"`
 }
 
 type Dao struct {
@@ -24,13 +24,13 @@ type Dao struct {
 
 func NewDao(ip string, port string, dbUser string, dbPass string, dbName string) (*Dao, error) {
 
-	err := Ping(ip, port, dbUser, dbPass, dbName)
-	if err != nil {
-		Log.Debug("ping connect db fail")
-		return nil, err
-	}
+	// err := Ping(ip, port, dbUser, dbPass, dbName)
+	// if err != nil {
+	// 	Log.Debug("ping connect db fail {}", err)
+	// 	return nil, err
+	// }
 
-	url := dbUser + ":" + dbPass + "@tcp(" + ip + ":" + port + ")/" + dbName + "?charset=utf8"
+	url := dbUser + ":" + dbPass + "@(" + ip + ":" + port + ")/" + dbName + "?charset=utf8&loc=Local"
 
 	Log.Debug("database url : {}", url)
 	db, err := sql.Open("mysql", url)
@@ -42,6 +42,7 @@ func NewDao(ip string, port string, dbUser string, dbPass string, dbName string)
 	db.SetMaxIdleConns(1000)
 	err = db.Ping()
 	if err != nil {
+		Log.Debug("ping connect db fail,err : {}", err)
 		return nil, err
 	}
 	Log.Debug("connect db success")
@@ -143,7 +144,7 @@ func (dao Dao) QueryList(sql string, args ...interface{}) (*ListResult, error) {
 		}
 		list = append(list, record)
 	}
-	return &ListResult{columns, &list}, nil
+	return &ListResult{columns, list}, nil
 }
 
 func (dao Dao) Update(sql string, args ...interface{}) (int64, error) {

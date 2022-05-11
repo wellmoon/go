@@ -1,9 +1,12 @@
 package utils
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -49,7 +52,7 @@ func DownloadFile(url string, locTarget string) (string, error) {
 	_, fileName := filepath.Split(url)
 	resp, err := http.Get(url)
 	if err != nil {
-		Log.Error("http get", err)
+		Log.Error("http get {} error: {}", err, url, err)
 		return "", err
 	}
 	defer func() {
@@ -103,7 +106,56 @@ func IsDir(path string) bool {
 
 func SendReq(url string, requestType string, params map[string]string, headers map[string]string) (string, map[string]string, map[string]string, error) {
 	return SendReqWithProxy(url, requestType, params, headers, nil)
+}
 
+func SendReqRaw(url string, params map[string]string) (string, error) {
+	client := http.Client{}
+
+	b1, _ := json.Marshal(&params)
+
+	req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(b1))
+	if err != nil {
+		log.Println("err")
+		return "", err
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Println("err")
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	b, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Println("err")
+		return "", err
+	}
+	return string(b), nil
+}
+
+func SendReqRawReturnBytes(url string, params map[string]string) ([]byte, error) {
+	client := http.Client{}
+
+	b1, _ := json.Marshal(&params)
+
+	req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(b1))
+	if err != nil {
+		log.Println("err")
+		return nil, err
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Println("err")
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	b, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Println("err")
+		return nil, err
+	}
+	return b, nil
 }
 
 func SendReqWithProxy(url string, requestType string, params map[string]string, headers map[string]string, proxy *url.URL) (string, map[string]string, map[string]string, error) {
@@ -166,4 +218,24 @@ func SendReqWithProxy(url string, requestType string, params map[string]string, 
 	}
 	return string(resBytes), respHeaderMap, respCookiesMap, nil
 
+}
+
+func ResumeShortUrl(url string) string {
+	client := &http.Client{
+		Timeout: 15 * time.Second,
+	}
+	reqType := "GET"
+
+	request, err := http.NewRequest(reqType, url, nil)
+	if err != nil {
+		return url
+	}
+
+	//处理返回结果
+	response, err := client.Do(request)
+	if err != nil {
+		return url
+	}
+	defer response.Body.Close()
+	return response.Request.URL.String()
 }
