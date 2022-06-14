@@ -32,7 +32,6 @@ func NewDao(ip string, port string, dbUser string, dbPass string, dbName string)
 
 	url := dbUser + ":" + dbPass + "@(" + ip + ":" + port + ")/" + dbName + "?charset=utf8&loc=Local"
 
-	Log.Debug("database url : {}", url)
 	db, err := sql.Open("mysql", url)
 	if err != nil {
 		Log.Debug("connect db faild, url is [{}], err : {}", url, err)
@@ -160,5 +159,6 @@ func (dao Dao) Update(sql string, args ...interface{}) (int64, error) {
 		Log.Error("RowsAffected failed {}", err)
 		return 0, err
 	}
+	Log.Debug("Update  sql finish, sql is {}", sql)
 	return idAff, nil
 }

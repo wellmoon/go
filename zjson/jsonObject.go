@@ -420,6 +420,11 @@ func ToJSONString(obj interface{}) string {
 	return string(res)
 }
 
+func ToBytes(obj interface{}) []byte {
+	res, _ := json.Marshal(obj)
+	return res
+}
+
 func (jsonObject *JSONObject) String() string {
 	// res, _ := json.Marshal(jsonObject)
 	// return string(res)

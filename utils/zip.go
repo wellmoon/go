@@ -13,9 +13,16 @@ import (
 func Zip(srcFile string) error {
 	Log.Trace("压缩文件：%v", srcFile)
 	destZip := srcFile + ".zip"
+	_, err := ZipToFile(srcFile, destZip)
+	return err
+}
+
+func ZipToFile(srcFile string, targetName string) (string, error) {
+	dir, _ := filepath.Split(srcFile)
+	destZip := filepath.Join(dir, targetName) + ".zip"
 	zipfile, err := os.Create(destZip)
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer zipfile.Close()
 
@@ -71,7 +78,7 @@ func Zip(srcFile string) error {
 		return err
 	})
 
-	return err
+	return destZip, nil
 }
 
 func Unzip(zipFile string, destDir string) error {

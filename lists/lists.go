@@ -97,6 +97,11 @@ func (arrayList *ArrayList) ToString() string {
 	return string(res)
 }
 
+func (arrayList *ArrayList) ToBytes() []byte {
+	res, _ := json.Marshal(arrayList.innerList)
+	return res
+}
+
 func StringSliceContain(list []string, val string) bool {
 	for _, v := range list {
 		if v == val {

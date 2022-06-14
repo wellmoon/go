@@ -104,11 +104,18 @@ func IsDir(path string) bool {
 
 }
 
+func SendReqWithTimeout(url string, requestType string, params map[string]string, headers map[string]string, timeout int) (string, map[string]string, map[string]string, error) {
+	return SendReqWithProxy(url, requestType, params, headers, nil, timeout)
+}
+
 func SendReq(url string, requestType string, params map[string]string, headers map[string]string) (string, map[string]string, map[string]string, error) {
-	return SendReqWithProxy(url, requestType, params, headers, nil)
+	return SendReqWithProxy(url, requestType, params, headers, nil, 15)
 }
 
 func SendReqRaw(url string, params map[string]string) (string, error) {
+	return SendReqRawWithHeader(url, params, nil)
+}
+func SendReqRawWithHeader(url string, params map[string]string, headers map[string]string) (string, error) {
 	client := http.Client{}
 
 	b1, _ := json.Marshal(&params)
@@ -117,6 +124,11 @@ func SendReqRaw(url string, params map[string]string) (string, error) {
 	if err != nil {
 		log.Println("err")
 		return "", err
+	}
+	if len(headers) > 0 {
+		for key, val := range headers {
+			req.Header.Add(key, val)
+		}
 	}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -158,10 +170,11 @@ func SendReqRawReturnBytes(url string, params map[string]string) ([]byte, error)
 	return b, nil
 }
 
-func SendReqWithProxy(url string, requestType string, params map[string]string, headers map[string]string, proxy *url.URL) (string, map[string]string, map[string]string, error) {
+func SendReqWithProxy(url string, requestType string, params map[string]string, headers map[string]string, proxy *url.URL, timeoutSeconds int) (string, map[string]string, map[string]string, error) {
 	client := &http.Client{
-		Timeout: 15 * time.Second,
+		Timeout: time.Duration(timeoutSeconds) * time.Second,
 	}
+
 	if proxy != nil {
 		client.Transport = &http.Transport{
 			Proxy: http.ProxyURL(proxy),

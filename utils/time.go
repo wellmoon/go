@@ -26,6 +26,10 @@ func GetTimeStr() string {
 	return time.Now().Format("20060102150405")
 }
 
+func GetCurTimeStr(formatter string) string {
+	return time.Now().Format(formatter)
+}
+
 // formatter : "2006-01-02 15:04:05"
 func GetTimeFromStr(timeStr string, formatter string) *time.Time {
 	loc, _ := time.LoadLocation("Local")
