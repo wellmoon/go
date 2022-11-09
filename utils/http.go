@@ -15,6 +15,7 @@ import (
 	"time"
 
 	Log "github.com/wellmoon/go/logger"
+	"github.com/wellmoon/go/zjson"
 )
 
 type Downloader struct {
@@ -145,7 +146,7 @@ func SendReqRawWithHeader(url string, params map[string]string, headers map[stri
 	return string(b), nil
 }
 
-func SendReqRawReturnBytes(url string, params map[string]string) ([]byte, error) {
+func SendReqRawReturnBytes(url string, params map[string]string, headers map[string]interface{}) ([]byte, error) {
 	client := http.Client{}
 
 	b1, _ := json.Marshal(&params)
@@ -154,6 +155,11 @@ func SendReqRawReturnBytes(url string, params map[string]string) ([]byte, error)
 	if err != nil {
 		log.Println("err")
 		return nil, err
+	}
+	if len(headers) > 0 {
+		for key, val := range headers {
+			req.Header.Add(key, zjson.ToStr(val))
+		}
 	}
 	resp, err := client.Do(req)
 	if err != nil {

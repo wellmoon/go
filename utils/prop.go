@@ -132,6 +132,29 @@ func GetConf(confFile string) map[string]string {
 	return config
 }
 
+func ReadFileToLine(confFile string) ([]string, error) {
+	f, err := os.Open(confFile)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	r := bufio.NewReader(f)
+	res := make([]string, 0)
+	for {
+		b, _, err := r.ReadLine()
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			return nil, err
+		}
+		s := strings.TrimSpace(string(b))
+		res = append(res, s)
+	}
+
+	return res, nil
+}
+
 func createConf(confPath string) {
 	var ip, port, password string
 	fmt.Println("没找到服务器配置，请输入服务器IP地址：")

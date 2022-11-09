@@ -41,6 +41,12 @@ func GetTimeFromStr(timeStr string, formatter string) *time.Time {
 	return nil
 }
 
+func MsToTime(ms int64) (time.Time, error) {
+
+	tm := time.Unix(0, ms*int64(time.Millisecond))
+	return tm, nil
+}
+
 func Sleepms(ms int) {
 	time.Sleep(time.Duration(ms) * time.Millisecond)
 }

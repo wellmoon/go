@@ -11,6 +11,7 @@ import (
 	"github.com/shopspring/decimal"
 
 	Log "github.com/wellmoon/go/logger"
+	"github.com/wellmoon/go/zjson"
 )
 
 type ListResult struct {
@@ -94,6 +95,35 @@ func (dao Dao) QueryMap(sql string, args ...interface{}) (map[string]string, err
 	return record, nil
 }
 
+func (dao Dao) QueryMapInterface(sql string, args ...interface{}) (map[string]interface{}, error) {
+	rows, err := dao.db.Query(sql, args...)
+	if err != nil {
+		Log.Error("queryMap error, sql is {}, err : {}", sql, err)
+		return nil, err
+	}
+	defer rows.Close()
+	columns, _ := rows.Columns()
+	for i := 0; i < len(columns); i++ {
+		columns[i] = strings.ToLower(columns[i])
+	}
+	scanArgs := make([]interface{}, len(columns))
+	values := make([]interface{}, len(columns))
+	for j := range values {
+		scanArgs[j] = &values[j]
+	}
+
+	record := make(map[string]interface{})
+	for rows.Next() {
+		_ = rows.Scan(scanArgs...)
+		for i, col := range values {
+			if col != nil {
+				record[columns[i]] = col
+			}
+		}
+	}
+	return record, nil
+}
+
 func toStr(inter interface{}) string {
 	if inter == nil {
 		return ""
@@ -115,7 +145,7 @@ func toStr(inter interface{}) string {
 func (dao Dao) QueryList(sql string, args ...interface{}) (*ListResult, error) {
 	t1 := time.Now()
 	rows, err := dao.db.Query(sql, args...)
-	Log.Debug("QueryList cost %.2f seconds, sql is {}", time.Since(t1).Seconds(), sql)
+	Log.Trace("QueryList cost %.2f seconds, sql is {}, params is {}", time.Since(t1).Seconds(), sql, zjson.ToJSONString(args))
 	if err != nil {
 		Log.Error("QueryList error, sql is {}, err : {}", sql, err)
 		return nil, err
@@ -159,6 +189,6 @@ func (dao Dao) Update(sql string, args ...interface{}) (int64, error) {
 		Log.Error("RowsAffected failed {}", err)
 		return 0, err
 	}
-	Log.Debug("Update  sql finish, sql is {}", sql)
+	// Log.Debug("Update  sql finish, sql is {}, args is {}", sql, args)
 	return idAff, nil
 }
