@@ -205,8 +205,8 @@ func interfaceToString(inter interface{}) (string, error) {
 func (jsonObject *JSONObject) GetFloat(key string) float64 {
 	value := jsonObject.Get(key)
 	v := value
-	val, ok := v.(float64)
-	if !ok {
+	val, err := ToFloat64(v)
+	if err != nil {
 		panic("convert to float error")
 	}
 	return val

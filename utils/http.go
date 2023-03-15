@@ -105,11 +105,11 @@ func IsDir(path string) bool {
 
 }
 
-func SendReqWithTimeout(url string, requestType string, params map[string]string, headers map[string]string, timeout int) (string, map[string]string, map[string]string, error) {
+func SendReqWithTimeout(url string, requestType string, params map[string]interface{}, headers map[string]string, timeout int) (string, map[string]string, map[string]string, error) {
 	return SendReqWithProxy(url, requestType, params, headers, nil, timeout)
 }
 
-func SendReq(url string, requestType string, params map[string]string, headers map[string]string) (string, map[string]string, map[string]string, error) {
+func SendReq(url string, requestType string, params map[string]interface{}, headers map[string]string) (string, map[string]string, map[string]string, error) {
 	return SendReqWithProxy(url, requestType, params, headers, nil, 15)
 }
 
@@ -117,11 +117,14 @@ func SendReqRaw(url string, params map[string]string) (string, error) {
 	return SendReqRawWithHeader(url, params, nil)
 }
 func SendReqRawWithHeader(url string, params map[string]string, headers map[string]string) (string, error) {
-	client := http.Client{}
 
 	b1, _ := json.Marshal(&params)
+	return SendBytes(url, b1, headers)
+}
 
-	req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(b1))
+func SendBytes(url string, inputBytes []byte, headers map[string]string) (string, error) {
+	client := http.Client{}
+	req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(inputBytes))
 	if err != nil {
 		log.Println("err")
 		return "", err
@@ -176,7 +179,7 @@ func SendReqRawReturnBytes(url string, params map[string]string, headers map[str
 	return b, nil
 }
 
-func SendReqWithProxy(url string, requestType string, params map[string]string, headers map[string]string, proxy *url.URL, timeoutSeconds int) (string, map[string]string, map[string]string, error) {
+func SendReqWithProxy(url string, requestType string, params map[string]interface{}, headers map[string]string, proxy *url.URL, timeoutSeconds int) (string, map[string]string, map[string]string, error) {
 	client := &http.Client{
 		Timeout: time.Duration(timeoutSeconds) * time.Second,
 	}
@@ -197,7 +200,7 @@ func SendReqWithProxy(url string, requestType string, params map[string]string, 
 		var r http.Request
 		r.ParseForm()
 		for key, val := range params {
-			r.Form.Add(key, val)
+			r.Form.Add(key, zjson.ToStr(val))
 		}
 		paramStr = strings.TrimSpace(r.Form.Encode())
 	}
@@ -212,7 +215,9 @@ func SendReqWithProxy(url string, requestType string, params map[string]string, 
 			request.Header.Add(key, val)
 		}
 	}
-
+	if requestType == "POST" {
+		request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	}
 	//处理返回结果
 	response, err := client.Do(request)
 	if err != nil {

@@ -45,7 +45,6 @@ func NewDao(ip string, port string, dbUser string, dbPass string, dbName string)
 		Log.Debug("ping connect db fail,err : {}", err)
 		return nil, err
 	}
-	Log.Debug("connect db success")
 	var dbStu Dao
 	dbStu.db = db
 	return &dbStu, nil

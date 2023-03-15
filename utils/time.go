@@ -19,11 +19,14 @@ func GetLongTime() int64 {
 }
 
 func GetTimeMillis() int64 {
-	return time.Now().UnixNano() / 1000000
+	return time.Now().UnixMilli()
 }
 
 func GetTimeStr() string {
 	return time.Now().Format("20060102150405")
+}
+func GetToday() string {
+	return time.Now().Format("20060102")
 }
 
 func GetCurTimeStr(formatter string) string {
