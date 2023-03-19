@@ -87,7 +87,7 @@ func (message *Message) SendMsg(conn interface{}) *Message {
 	}
 
 	if ok {
-		Log.Error("send message error: {}, message :{}", err, message.Content)
+		Log.Error("send message error: {}, message : {}", err, message.Content)
 		res := &Message{}
 		json := zjson.NewObject()
 		json.Put("code", 1)
