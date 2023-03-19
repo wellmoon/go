@@ -73,6 +73,11 @@ func (message *Message) SendMsg(conn interface{}) *Message {
 	if reflect.TypeOf(conn).String() == "*net.Conn" {
 		// 如果反射对象是接口，需要调用实际的对象的方法，避免出现错误：panic: reflect: call of reflect.Value.Call on zero Value
 		ret = v.Elem().MethodByName("Write").Call(in)
+	} else if reflect.TypeOf(conn).String() == "*websocket.Conn" {
+		in := []reflect.Value{}
+		in = append(in, reflect.ValueOf(1))
+		in = append(in, reflect.ValueOf([]byte(messageStr)))
+		ret = v.MethodByName("WriteMessage").Call(in)
 	} else {
 		ret = v.MethodByName("Write").Call(in)
 	}
