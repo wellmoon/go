@@ -69,20 +69,24 @@ func (message *Message) SendMsg(conn interface{}) *Message {
 	msg := reflect.ValueOf([]byte(messageStr))
 	in := []reflect.Value{msg}
 	var ret []reflect.Value
-
+	var ok bool
+	var err error
 	if reflect.TypeOf(conn).String() == "*net.Conn" {
 		// 如果反射对象是接口，需要调用实际的对象的方法，避免出现错误：panic: reflect: call of reflect.Value.Call on zero Value
 		ret = v.Elem().MethodByName("Write").Call(in)
+		err, ok = ret[1].Interface().(error)
 	} else if reflect.TypeOf(conn).String() == "*websocket.Conn" {
 		in := []reflect.Value{}
 		in = append(in, reflect.ValueOf(1))
 		in = append(in, reflect.ValueOf([]byte(messageStr)))
 		ret = v.MethodByName("WriteMessage").Call(in)
+		err, ok = ret[0].Interface().(error)
 	} else {
 		ret = v.MethodByName("Write").Call(in)
+		err, ok = ret[1].Interface().(error)
 	}
 
-	if err, ok := ret[1].Interface().(error); ok {
+	if ok {
 		Log.Error("send message error: {}, message :{}", err, message.Content)
 		res := &Message{}
 		json := zjson.NewObject()
