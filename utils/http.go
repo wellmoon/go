@@ -2,6 +2,7 @@ package utils
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -180,12 +181,16 @@ func SendReqRawReturnBytes(url string, params map[string]string, headers map[str
 }
 
 func SendReqWithProxy(url string, requestType string, params map[string]interface{}, headers map[string]string, proxy *url.URL, timeoutSeconds int) (string, map[string]string, map[string]string, error) {
-	client := &http.Client{
-		Timeout: time.Duration(timeoutSeconds) * time.Second,
+	// client := &http.Client{
+	// 	Timeout: time.Duration(timeoutSeconds) * time.Second,
+	// }
+	if timeoutSeconds <= 0 {
+		timeoutSeconds = 10
 	}
-
+	ctx, cancel := context.WithTimeout(context.TODO(), time.Duration(timeoutSeconds)*time.Second)
+	defer cancel()
 	if proxy != nil {
-		client.Transport = &http.Transport{
+		http.DefaultClient.Transport = &http.Transport{
 			Proxy: http.ProxyURL(proxy),
 		}
 	}
@@ -205,7 +210,7 @@ func SendReqWithProxy(url string, requestType string, params map[string]interfac
 		paramStr = strings.TrimSpace(r.Form.Encode())
 	}
 
-	request, err := http.NewRequest(reqType, url, strings.NewReader(paramStr))
+	request, err := http.NewRequestWithContext(ctx, reqType, url, strings.NewReader(paramStr))
 	if err != nil {
 		return "", nil, nil, err
 	}
@@ -219,7 +224,7 @@ func SendReqWithProxy(url string, requestType string, params map[string]interfac
 		request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	}
 	//处理返回结果
-	response, err := client.Do(request)
+	response, err := http.DefaultClient.Do(request)
 	if err != nil {
 		return "", nil, nil, err
 	}

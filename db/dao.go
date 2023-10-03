@@ -10,6 +10,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/shopspring/decimal"
 
+	"github.com/wellmoon/go/logger"
 	Log "github.com/wellmoon/go/logger"
 	"github.com/wellmoon/go/zjson"
 )
@@ -123,6 +124,10 @@ func (dao Dao) QueryMapInterface(sql string, args ...interface{}) (map[string]in
 	return record, nil
 }
 
+func (dao Dao) GetOriDb() *sql.DB {
+	return dao.db
+}
+
 func toStr(inter interface{}) string {
 	if inter == nil {
 		return ""
@@ -190,4 +195,41 @@ func (dao Dao) Update(sql string, args ...interface{}) (int64, error) {
 	}
 	// Log.Debug("Update  sql finish, sql is {}, args is {}", sql, args)
 	return idAff, nil
+}
+
+// 返回插入后的自增id
+func (dao Dao) Insert(sql string, args ...interface{}) (int64, error) {
+	tx, err := dao.db.Begin()
+	if err != nil {
+		logger.Error("begin tx err : {}", err)
+		return 0, err
+	}
+	result, err := tx.Exec(sql, args...)
+	if err != nil {
+		logger.Error("tx exec sql err : {}", err)
+		tx.Rollback()
+		return 0, err
+	}
+
+	id, err := result.LastInsertId()
+	if err != nil {
+		logger.Error("get LastInsertId err : {}", err)
+		tx.Rollback()
+		return 0, err
+	}
+	err = tx.Commit()
+	if err != nil {
+		logger.Error("tx commit err : {}", err)
+		return 0, err
+	}
+	return id, nil
+}
+
+func (dao Dao) SelectCount(sql string, args ...interface{}) (int, error) {
+	var count int
+	err := dao.db.QueryRow(sql, args...).Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
 }
