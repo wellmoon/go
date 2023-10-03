@@ -11,7 +11,6 @@ import (
 	"github.com/shopspring/decimal"
 
 	"github.com/wellmoon/go/logger"
-	Log "github.com/wellmoon/go/logger"
 	"github.com/wellmoon/go/zjson"
 )
 
@@ -28,7 +27,7 @@ func NewDao(ip string, port string, dbUser string, dbPass string, dbName string)
 
 	// err := Ping(ip, port, dbUser, dbPass, dbName)
 	// if err != nil {
-	// 	Log.Debug("ping connect db fail {}", err)
+	// 	logger.Debug("ping connect db fail {}", err)
 	// 	return nil, err
 	// }
 
@@ -36,14 +35,14 @@ func NewDao(ip string, port string, dbUser string, dbPass string, dbName string)
 
 	db, err := sql.Open("mysql", url)
 	if err != nil {
-		Log.Debug("connect db faild, url is [{}], err : {}", url, err)
+		logger.Debug("connect db faild, url is [{}], err : {}", url, err)
 		return nil, err
 	}
 	db.SetMaxOpenConns(2000)
 	db.SetMaxIdleConns(1000)
 	err = db.Ping()
 	if err != nil {
-		Log.Debug("ping connect db fail,err : {}", err)
+		logger.Debug("ping connect db fail,err : {}", err)
 		return nil, err
 	}
 	var dbStu Dao
@@ -55,7 +54,7 @@ func Ping(ip string, port string, dbUser string, dbPass string, dbName string) e
 	testUrl := dbUser + ":" + dbPass + "@tcp(" + ip + ":" + port + ")/" + dbName + "?charset=utf8&timeout=3s"
 	db, err := sql.Open("mysql", testUrl)
 	if err != nil {
-		Log.Debug("connect db faild, url is [{}], err : {}", testUrl, err)
+		logger.Debug("connect db faild, url is [{}], err : {}", testUrl, err)
 		return err
 	}
 	defer db.Close()
@@ -69,7 +68,7 @@ func Ping(ip string, port string, dbUser string, dbPass string, dbName string) e
 func (dao Dao) QueryMap(sql string, args ...interface{}) (map[string]string, error) {
 	rows, err := dao.db.Query(sql, args...)
 	if err != nil {
-		Log.Error("queryMap error, sql is {}, err : {}", sql, err)
+		logger.Error("queryMap error, sql is {}, err : {}", sql, err)
 		return nil, err
 	}
 	defer rows.Close()
@@ -98,7 +97,7 @@ func (dao Dao) QueryMap(sql string, args ...interface{}) (map[string]string, err
 func (dao Dao) QueryMapInterface(sql string, args ...interface{}) (map[string]interface{}, error) {
 	rows, err := dao.db.Query(sql, args...)
 	if err != nil {
-		Log.Error("queryMap error, sql is {}, err : {}", sql, err)
+		logger.Error("queryMap error, sql is {}, err : {}", sql, err)
 		return nil, err
 	}
 	defer rows.Close()
@@ -149,9 +148,9 @@ func toStr(inter interface{}) string {
 func (dao Dao) QueryList(sql string, args ...interface{}) (*ListResult, error) {
 	t1 := time.Now()
 	rows, err := dao.db.Query(sql, args...)
-	Log.Trace("QueryList cost %.2f seconds, sql is {}, params is {}", time.Since(t1).Seconds(), sql, zjson.ToJSONString(args))
+	logger.Trace("QueryList cost %.2f seconds, sql is {}, params is {}", time.Since(t1).Seconds(), sql, zjson.ToJSONString(args))
 	if err != nil {
-		Log.Error("QueryList error, sql is {}, err : {}", sql, err)
+		logger.Error("QueryList error, sql is {}, err : {}", sql, err)
 		return nil, err
 	}
 	defer rows.Close()
@@ -184,16 +183,16 @@ func (dao Dao) Update(sql string, args ...interface{}) (int64, error) {
 
 	result, err := dao.db.Exec(sql, args...)
 	if err != nil {
-		Log.Error("exec failed err is {}, sql is {}", err, sql)
+		logger.Error("exec failed err is {}, sql is {}", err, sql)
 		return 0, err
 	}
 
 	idAff, err := result.RowsAffected()
 	if err != nil {
-		Log.Error("RowsAffected failed {}", err)
+		logger.Error("RowsAffected failed {}", err)
 		return 0, err
 	}
-	// Log.Debug("Update  sql finish, sql is {}, args is {}", sql, args)
+	// logger.Debug("Update  sql finish, sql is {}, args is {}", sql, args)
 	return idAff, nil
 }
 
