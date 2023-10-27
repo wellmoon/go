@@ -31,7 +31,7 @@ func NewDao(ip string, port string, dbUser string, dbPass string, dbName string)
 	// 	return nil, err
 	// }
 
-	url := dbUser + ":" + dbPass + "@(" + ip + ":" + port + ")/" + dbName + "?charset=utf8&loc=Local"
+	url := dbUser + ":" + dbPass + "@(" + ip + ":" + port + ")/" + dbName + "?charset=utf8mb4&collation=utf8mb4_general_ci&loc=Local"
 
 	db, err := sql.Open("mysql", url)
 	if err != nil {
@@ -51,7 +51,7 @@ func NewDao(ip string, port string, dbUser string, dbPass string, dbName string)
 }
 
 func Ping(ip string, port string, dbUser string, dbPass string, dbName string) error {
-	testUrl := dbUser + ":" + dbPass + "@tcp(" + ip + ":" + port + ")/" + dbName + "?charset=utf8mb4&timeout=8s"
+	testUrl := dbUser + ":" + dbPass + "@tcp(" + ip + ":" + port + ")/" + dbName + "?charset=utf8mb4&collation=utf8mb4_general_ci&timeout=8s"
 	db, err := sql.Open("mysql", testUrl)
 	if err != nil {
 		logger.Debug("connect db faild, url is [{}], err : {}", testUrl, err)
