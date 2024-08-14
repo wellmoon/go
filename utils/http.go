@@ -114,10 +114,10 @@ func SendReq(url string, requestType string, params map[string]interface{}, head
 	return SendReqWithProxy(url, requestType, params, headers, nil, 15)
 }
 
-func SendReqRaw(url string, params map[string]string) (string, error) {
+func SendReqRaw(url string, params map[string]interface{}) (string, error) {
 	return SendReqRawWithHeader(url, params, nil)
 }
-func SendReqRawWithHeader(url string, params map[string]string, headers map[string]string) (string, error) {
+func SendReqRawWithHeader(url string, params map[string]interface{}, headers map[string]string) (string, error) {
 
 	b1, _ := json.Marshal(&params)
 	return SendBytes(url, b1, headers)

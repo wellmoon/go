@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime/debug"
 	"strings"
 	"sync"
@@ -106,25 +107,44 @@ func switchFile(logFile string) (bool, *os.File) {
 
 // goroutine 6 [running]:
 // runtime/debug.Stack(0x10, 0x11, 0x1)
-//         /usr/local/go/src/runtime/debug/stack.go:24 +0x9f
+//
+//	/usr/local/go/src/runtime/debug/stack.go:24 +0x9f
+//
 // github.com/wellmoon/go/logger.getStack(0xc0000f99f0, 0xc000016610)
-//         /Users/wenjie/go/pkg/mod/github.com/wellmoon/go@v0.0.0-20210905020657-0e9656f9d933/logger/logger.go:99 +0x34
+//
+//	/Users/wenjie/go/pkg/mod/github.com/wellmoon/go@v0.0.0-20210905020657-0e9656f9d933/logger/logger.go:99 +0x34
+//
 // github.com/wellmoon/go/logger.print(0xc00008c1e0, 0xc0000f99f0, 0x10, 0xc0000f9ac8, 0x1, 0x1)
-//         /Users/wenjie/go/pkg/mod/github.com/wellmoon/go@v0.0.0-20210905020657-0e9656f9d933/logger/logger.go:122 +0xd7
+//
+//	/Users/wenjie/go/pkg/mod/github.com/wellmoon/go@v0.0.0-20210905020657-0e9656f9d933/logger/logger.go:122 +0xd7
+//
 // github.com/wellmoon/go/logger.Debug(0x12bc5e0, 0xf, 0xc0000f9ac8, 0x1, 0x1)
-//         /Users/wenjie/go/pkg/mod/github.com/wellmoon/go@v0.0.0-20210905020657-0e9656f9d933/logger/logger.go:131 +0x165
+//
+//	/Users/wenjie/go/pkg/mod/github.com/wellmoon/go@v0.0.0-20210905020657-0e9656f9d933/logger/logger.go:131 +0x165
+//
 // main.MusicFind(0x1313350, 0xc0000e00e0, 0xc0000ea000)
-//         /Users/wenjie/github.com/wellmoon/MusicFinder/main.go:25 +0x147
+//
+//	/Users/wenjie/github.com/wellmoon/MusicFinder/main.go:25 +0x147
+//
 // net/http.HandlerFunc.ServeHTTP(0x12d0fc0, 0x1313350, 0xc0000e00e0, 0xc0000ea000)
-//         /usr/local/go/src/net/http/server.go:2069 +0x44
+//
+//	/usr/local/go/src/net/http/server.go:2069 +0x44
+//
 // net/http.(*ServeMux).ServeHTTP(0x14788a0, 0x1313350, 0xc0000e00e0, 0xc0000ea000)
-//         /usr/local/go/src/net/http/server.go:2448 +0x1ad
+//
+//	/usr/local/go/src/net/http/server.go:2448 +0x1ad
+//
 // net/http.serverHandler.ServeHTTP(0xc0000e0000, 0x1313350, 0xc0000e00e0, 0xc0000ea000)
-//         /usr/local/go/src/net/http/server.go:2887 +0xa3
+//
+//	/usr/local/go/src/net/http/server.go:2887 +0xa3
+//
 // net/http.(*conn).serve(0xc0000a8960, 0x1313860, 0xc000080240)
-//         /usr/local/go/src/net/http/server.go:1952 +0x8cd
+//
+//	/usr/local/go/src/net/http/server.go:1952 +0x8cd
+//
 // created by net/http.(*Server).Serve
-//         /usr/local/go/src/net/http/server.go:3013 +0x39b
+//
+//	/usr/local/go/src/net/http/server.go:3013 +0x39b
 func getStack() string {
 	sep := string(os.PathSeparator)
 	var res string
@@ -171,6 +191,16 @@ func Trace(format string, v ...interface{}) {
 		traceLog = log.New(logWriter, "[TRACE] ", flag)
 	}
 	print(traceLog, format, v...)
+}
+
+func MaskSensitiveInfo(logMessage string) string {
+	// Regular expression to match the bot token pattern
+	tokenRegex := regexp.MustCompile(`bot\d+:[a-zA-Z0-9_-]+`)
+
+	// Replace the matched bot token with a masked version
+	maskedLog := tokenRegex.ReplaceAllString(logMessage, "bot[REDACTED]")
+
+	return maskedLog
 }
 
 func Error(format string, v ...interface{}) {
